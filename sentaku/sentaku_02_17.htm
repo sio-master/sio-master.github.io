@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字選択ツール 2.17</title>
+<!--
+	操作説明や更新履歴はこのファイルをブラウザで読み込んで表示したページ上の最下部にあるメニューで表示できます。
+-->
+<style>
+body{
+	position: absolute;
+	margin: 0;
+	padding: 2px;
+	overflow: scroll;
+}
+main{
+	position:relative;
+	display: block;
+	position: relative;
+	box-sizing:border-box;
+	margin: 0;
+	padding:4px;
+	width: 100%;
+	
+}
+
+	details{
+		display: inline-block;
+	}
+
+	details[open]{
+		display: block;
+	}
+
+details[open]._CSS_Setting_Sec1 {
+	display: inline-block;
+	background-color: aliceblue;
+	color: #1d2088;
+	margin: 2px;
+	padding: 2px;
+	border: 1px dotted #1d2088;
+	
+}
+
+	input{
+		text-align: left;
+	}
+
+	input.CSS_INP_NUM{
+		text-align: right;
+	}
+
+	#_Elm_DIV_Menu{
+		
+	}
+
+	#_Elm_DIV_Setting1{
+		position: relative;
+		display: block;
+		box-sizing: border-box;
+		margin: 0;
+		padding:4px ;
+		background-color: #1d2088;
+		color: aliceblue;
+		width: 100%;
+		border-radius: 8px;
+
+	}
+	#_Elm_DIV_Setting1_1{
+		display: block;
+		position:relative;
+		width: 100%;
+		white-space: nowrap;
+		overflow-x:hidden;
+}
+
+#_Elm_DIV_Setting2{
+	position: relative;
+	display: block;
+	background-color: #f29600;
+	color:aliceblue;
+	border-radius: 8px;
+}
+
+
+
+	#_Elm_DIV_Memo{
+		position: relative;
+		display: inline-block;
+		overflow: scroll;
+		box-sizing:border-box;
+		margin: 0;
+		padding: 0;
+		border: 1px dotted;
+		width: 480px;
+		height: 256px;
+		white-space: nowrap;
+		font-size: 24px;
+		font-family: monospace;
+	}
+
+#_Elm_TXT_Statistics{
+	position:relative;
+	box-sizing: border-box;
+	margin: 0;
+	border: 1px dashed;
+	width:480px;
+	font-size:20px;
+}
+
+	._CLS_Memo2{
+		position: relative;
+		display: inline-block;
+		overflow: scroll;
+		box-sizing:border-box;
+		margin: 0;
+		padding: 0;
+		border: 0px dotted;
+		width: 472px;
+		height: 256px;
+		font-family: monospace;
+		resize: none;
+		font-size: 20px;
+	}
+
+#_Elm_DIV_KUJINUM{
+
+	box-sizing: border-box;
+	resize:horizontal;
+	width:100% ;
+	border:1px dotted whitesmoke;
+	overflow:hidden;
+	padding: 2px;
+
+	display: grid;
+  grid-template-columns: repeat(7,auto);
+
+}
+#_Elm_DIV_KUJINUM::-webkit-resizer{
+	box-sizing: border-box;
+	position: relative;
+	border: 1px dotted #1d2088;
+  background-color:aliceblue; /* 分かりやすいように色をつける */
+	width: 1em;               /* 横幅を広げる */
+  height: 1lh;              /* 縦幅を広げる */
+  cursor: ew-resize;
+}
+
+
+#_Elm_DIV_KUJINUM label{
+	display: inline-block;
+	border: 1px dotted;
+}
+
+._CSS_Disp_Settng{
+	font-family: monospace;
+	color: #1d2088;
+	border-color: #e60012;
+}
+._CSS_Disp_Settng code{
+	font-weight: bold;
+}
+
+.CSS_KUJI_Color1{
+	background-color: #1d2088;
+	color: aliceblue;
+	padding: 2px;
+	border-radius: 4px;
+}
+.CSS_KUJI_Color2{
+	background-color: #f29600;
+	color: aliceblue;
+	padding: 2px;
+	border-radius: 4px;
+
+}
+
+.CSS_BTN_Run{
+	background-color:floralwhite;
+	color:palevioletred;
+	border-color:  palevioletred;
+	font-weight: bold;
+}
+
+._CSS_KUJI_Ctrl{
+	display: none;
+}
+
+</style> 
+<script>
+
+//グローバルエリア
+
+//このスクリプト全体のエントリーポイント
+window.onload=()=>{
+	
+//組み込み関数の短縮参照
+const {log:$log}=console;
+const {trunc:$trunc,sign:$sign,sin:$sin,cos:$cos,round:$round,ceil:$ceil,random:$rnd,floor:$floor,PI:_PI}=Math;
+const {assign:$assign}=Object;
+const {isArray:$isArray}=Array;
+const {parse:$parse}=JSON;
+const {NumberFormat:$FormatN}=Intl;
+	
+//DOMモデル短縮参照
+const {confirm:$confirm,document:$doc}=window;
+const $GEI = _id => $doc.getElementById(_id);
+const $CE = _tag => $doc.createElement(_tag);
+const $CDF = () => $doc.createDocumentFragment();
+	
+//カスタム関数
+//値を整数変換して返す。数値化できない場合0を返す
+const $SEISU=(_v)=>{ return $trunc(Number(_v ?? 0)) };
+//子要素を全て削除する
+function Fn_ClearAllChildren(_Elm){
+	if(_Elm.replaceChildren){
+		_Elm.replaceChildren();
+	}else if(_Elm.parentNode.replaceChild){
+		_Elm.parentNode.replaceChild(_Elm.cloneNode(false),_Elm);
+	}else{
+		_Elm.innerHTML="";
+	}	
+}
+//小数1位までのxx.xのフォーマット文字列を返す
+function formatPercent(_v){   
+  // 整数部分と小数部分に分割する
+  const [intPart, decPart] = _v.toFixed(1).split('.');
+
+  return `${ intPart.padStart(2," ") }.${ decPart.padStart(1,"0") }`;	
+}
+
+//その他、window.onload()内スコープレベルの変数宣言
+let MyTokeiData=null;
+
+/*
+	与えた配列の要素をシャッフルし、
+	さらにその中からn個の要素をランダムに抜き出し作成した配列を返す
+	元の配列は抜き出した要素が削除される
+*/
+function Fn_GetRandamElement(_Ary,_n,_sfl,_method,_NonDest){
+
+	const _LEN_Ary=_Ary.length;
+	if ( !(_LEN_Ary>0) ){ return [];}
+	
+	let _Ary_Selected=[];
+
+if (_LEN_Ary<=_n){
+	if (_NonDest){
+		_Ary_Selected=_Ary.slice();
+	}else{
+		_Ary_Selected=_Ary.splice(0);
+	}
+}else{
+	
+	//ソース配列の非破壊処理をするかどうか
+	if (_NonDest){_Ary=_Ary.slice()};
+
+	//シャッフル回数を決定
+	_sfl=$SEISU(_sfl);
+	if(_sfl>9){_sfl=$floor( $rnd()*5 )+1};
+
+	//配列全要素をシャッフルする
+	for(let _i=0;_i<_sfl;_i++){
+		_Ary.forEach(
+			function(__e,__i){
+				const __r=$floor($rnd()*(_LEN_Ary));//０～(要素数ー１)までのインデックス値をランダムに発生
+				//値交換は分割代入では配列作成の分遅いので通常の代入法を使う。
+				_Ary[__i]=_Ary[__r];_Ary[__r]=__e;
+			}
+		);
+	}
+	
+	_method=$SEISU(_method);
+	if(!_method){_method=$floor( $rnd()*2 )+1;};
+
+	//選択された抽出方法の実行
+	switch( _method ){
+	case 2:
+		//順当：先頭の要素から１度に_n個を取り出す
+		if(_NonDest){
+			_Ary_Selected=_Ary.slice(0,_n);
+		}else{
+			_Ary_Selected=_Ary.splice(0,_n);
+		}		
+		break;
+	default:
+		//ランダム：要素を１個づつランダムに抜き出しながら取り出す
+		for(let _i=0;_i<_n;_i++){
+			let _r=$floor($rnd()*(_Ary.length))
+			_Ary_Selected.push(_Ary[_r]);
+			_Ary[_r]=_Ary[_Ary.length-1];
+			_Ary.pop();
+		};
+	}
+}
+	return _Ary_Selected;			
+};
+
+//重複なし抽出ボタン
+$GEI("_Elm_BTN_Run2").onclick=function(){
+
+	//くじ設定からチェック有り数字の配列を得る
+	const Ary_KUJI=Fn_ReArrayKUJINUM(true);
+
+	//選び出す個数
+	const nSel=$SEISU( $GEI("_Elm_NMB_Selected").value );
+
+	Fn_DispLogByString("重複なし抽出:START");
+
+	for ( let _i=0,Ary_Sel=Fn_GetRandamElement(Ary_KUJI,nSel,10,false); Ary_Sel.length>0 && _i<100 ; _i++,Ary_Sel=Fn_GetRandamElement(Ary_KUJI,nSel,10,false) ){
+		Fn_DispLog(Ary_Sel);
+	}
+
+	Fn_DispLogByString("重複なし抽出:END");
+
+}
+
+//与えた配列の全要素から表示用書式で文字列を作成して返す
+function Fn_ReStr_FormatArrayToString(_Ary,_Sep,_Zero,_Group){
+
+	const _GROUP_COLOR=["〇","一","二","三","四","五","六"];
+	
+	let _Ary2=Array(_Ary.length);
+		_Ary.forEach(function(__e,__i){
+				_Ary2[__i]=( (_Zero) ? String(__e).padStart(2,"0") : String(__e) )+( (_Group) ? _GROUP_COLOR[__e % 7] : "" );
+			}
+		);
+
+	return _Ary2.join(_Sep);
+}
+
+//実行ボタンで実行する
+$GEI("_Elm_BTN_Run").onclick=()=>{
+
+	const _Kuji_Array=Fn_ReArrayKUJINUM(true);
+	const _Kuji_AllNum=_Kuji_Array.length;
+	var _v=$SEISU( $GEI("_Elm_NMB_Selected").value );
+	const _Kuji_SelectedNum=(_v>_Kuji_AllNum)?_Kuji_AllNum:_v;
+		
+	const _Kuji_Array_Selection=Fn_GetRandamElement( _Kuji_Array , _Kuji_SelectedNum , $GEI("_Elm_SEL_Shuffle").value , $GEI("_Elm_SEL_RndMethod").value );
+	
+	//取り出す数字が全くなかった場合は無効として処理しない
+	if( !(_Kuji_Array_Selection.length>0) ) return;
+
+	//統計データを更新する
+	MyTokeiData.SetCountsPlus();
+	for(let _i=0,_LEN=_Kuji_Array_Selection.length;_i<_LEN;_i++){
+		MyTokeiData.SetDataPlus(_Kuji_Array_Selection[_i]);
+	}
+	MyTokeiData.RefreshData();//入力されたデータを更新
+	Fn_DispStatistics();
+
+	Fn_DispLog(_Kuji_Array_Selection);
+
+}
+
+//統計データを表示する
+function Fn_DispStatistics(){
+	const _Counts=$GEI("_Elm_RunCounts").textContent=MyTokeiData.GetCounts();
+	const _Ary_DataSuuji=MyTokeiData.GetDataAll();
+	const NumsSelected=$GEI("_Elm_NMB_Selected").value;
+	let _text=`抽出回数:${_Counts}\r\n`;
+
+	if($GEI("_Elm_CB_DispTopData").checked){
+		let _s="";
+		const _Ary_TopData=_Ary_DataSuuji.slice(0,NumsSelected);
+		_Ary_TopData.forEach( (_e)=>{_s +=` ${_e[0]}`} );
+		$GEI("_Elm_TXT_Statistics").value=`${_Counts}回${$GEI("_Elm_SEL_Statistics").selectedOptions[0].text}トップ${NumsSelected}:${_s}\r\n`;
+	}
+
+	if( $GEI("_Elm_CHECK_Setting1").checked && $GEI("_Elm_DET_Statistics").open ){
+
+		if (_Counts>0){
+			_Ary_DataSuuji.forEach(
+				(_e)=>{ _text+=`${ String(_e[0]).padStart(2,"0") }:${String(_e[1]).padStart(4," ")}回 (${ formatPercent( (_e[1]/_Counts)*100 ) }%)\r\n` }
+			);
+		}
+		$GEI("_Elm_TA_ToukeiData").value=_text;
+	}
+}
+
+//統計情報欄が表示されるときに表示更新する
+$GEI("_Elm_DET_Statistics").ontoggle=function(){
+ Fn_DispStatistics();
+}
+
+//統計セレクタの値が変更された
+$GEI("_Elm_SEL_Statistics").onchange=function(){
+	MyTokeiData.SetArrangeBy(this.value);
+	Fn_DispStatistics();
+}
+
+//ログ欄にテキストを１行表示する
+function Fn_DispLogByString(_Text){
+	const Elm_DIV_Memo=$GEI("_Elm_DIV_Memo");
+	Elm_DIV_Memo.insertAdjacentHTML("beforeend",`<div>${_Text}</div>`);
+	Elm_DIV_Memo.scrollTop = Elm_DIV_Memo.scrollHeight;
+}
+
+//ログ欄に表示する
+function Fn_DispLog(Ary_Selected){
+
+	if ( $GEI("_Elm_CB_Order").checked ){
+		Ary_Selected.sort( (__a,__b)=>(-(__a<__b) || (__a>__b) || 0) );
+	}
+
+	const _v_Seleced=Fn_ReStr_FormatArrayToString( Ary_Selected , String($GEI("_Elm_TEXT_Separator").value).substring(0,2) , $GEI("_Elm_CB_Zero").checked , $GEI("_Elm_CB_Group").checked );
+	const Elm_DIV_Memo=$GEI("_Elm_DIV_Memo");
+
+	switch (1){
+		case 1:{
+			Elm_DIV_Memo.insertAdjacentHTML("beforeend",`<div>${_v_Seleced}</div>`);
+			break;
+		}
+		case 2:{
+			const __div1=$CE("div");
+			$assign( __div1,{textContent:_v_Seleced} );
+			Elm_DIV_Memo.appendChild( __div1 );
+			break;
+		}
+		case 3:{
+			const __div1=$CE("div"); 
+			for(const __e of Ary_Selected){
+				const __e2=$CE("span");
+				$assign( __e2,{textContent:__e} );
+				__div1.appendChild(__e2);
+			}
+			Elm_DIV_Memo.appendChild( __div1 );
+			break;	
+		}
+	}
+
+	Elm_DIV_Memo.scrollTop = Elm_DIV_Memo.scrollHeight;
+
+}
+
+//ログを１行だけ削除
+$GEI("_Elm_BTN_Clear").onclick=function(){
+	const Elm_DIV_MEMO_Child=$GEI("_Elm_DIV_Memo").firstChild;
+	if(Elm_DIV_MEMO_Child){
+		Elm_DIV_MEMO_Child.remove();
+	}
+}
+
+//ログを全て削除
+$GEI("_Elm_BTN_Clear_All").onclick=()=>{
+	if( $confirm("【注意】\r\nログを全て削除します。") ){
+		Fn_ClearAllChildren( $GEI("_Elm_DIV_Memo") );
+	}
+}
+
+//くじ表示欄の表示非表示切り替えチェックボタンのユーザー操作処理
+$GEI("_Elm_CHECK_Setting1").oninput=function(){
+	Fn_DispStatistics();
+	$GEI("_Elm_DIV_Setting1").style.display=this.checked?"block":"none";
+};
+
+//くじを選択オンオフデータを持つ配列から実際にHTML表示する関数
+//要求する配列の要素:[くじ数字の数値,チェック状態Bool値]
+function Fn_Show_KUJINUM(_Ary){
+	const Elm_DIV_KUJINUM=$GEI("_Elm_DIV_KUJINUM");
+	//まず既存の内容を消す
+	Fn_ClearAllChildren(Elm_DIV_KUJINUM);	
+	
+	const DocFrag=$CDF();
+	
+	for(const [__e,__v] of _Ary){
+
+		const lb1=$CE("label");
+		const cb1=$CE("input");		
+
+		$assign(cb1,{ type:"checkbox" , className:"_CN_SelCheck" , checked:((__v===undefined)?true:Boolean(__v)) , value:__e } );
+		lb1.append(cb1,String(__e).padStart(2,"0"));
+
+		DocFrag.append(lb1);
+
+	};
+	Elm_DIV_KUJINUM.append(DocFrag);
+	Fn_DispCountCheck();
+}
+
+//くじ数字選択設定欄の設定[数値,チェック]を要素に持つ配列を返す、_selにtrue値を与えるとチェックのある数値だけの要素の配列になる
+function Fn_ReArrayKUJINUM(_Sel){
+
+	//くじ数字を表示しているlabel要素のコレクションを得る
+	//各label要素のfirstChildはcheckbox
+	const _Col=$GEI("_Elm_DIV_KUJINUM").children;
+
+	const _Ary=[];
+
+	if(_Sel){
+		for(const {firstChild:__e} of _Col){
+			if(__e.checked){
+				_Ary.push( $SEISU(__e.value) );
+			}
+		}
+	}else{
+		for(const {firstChild:__e} of _Col){
+			_Ary.push( [ $SEISU(__e.value), __e.checked ] );
+		}
+	}
+	return _Ary;
+}
+
+//統計データを保持するオブジェクトのコンストラクタ
+function CST_TOKEIDATA(_n){
+	let _CountRun=0;
+	let _ArrangeBy=0;
+	const _KUJINums=$SEISU(_n);
+	//データ形式は[ Suuji , counts ]
+	const _Ary_DataSuuji=new Array(_KUJINums);
+	const _Ary_Data=new Array(_KUJINums);
+	for(let __i=0;__i<_KUJINums;__i++){
+		_Ary_DataSuuji[__i]=_Ary_Data[__i]=[String(__i+1).padStart(2,"0"),0];		
+	}
+
+	//内部保持データを指定条件で並び変える
+	function _Fn_ArrangeData(){
+		switch(_ArrangeBy){
+			//頻出順(降順)
+			case 1:{
+				_Ary_DataSuuji.sort(
+					(a,b)=>{
+						return(a[1]<b[1] || -(a[1]>b[1]) || 0);  
+					}
+				);
+				break;
+			}
+
+			//レア順(昇順)
+			case 2:{
+				_Ary_DataSuuji.sort(
+					(a,b)=>{
+						return(a[1]>b[1] || -(a[1]<b[1]) || 0);
+					}
+				);
+				break;
+			}
+
+			//通常数字順
+			default:{
+				_ArrangeBy=0;//並び指定を0とみなす
+				_Ary_DataSuuji.sort(
+					(a,b)=>{
+						return(a[0]>b[0] || -(a[0]<b[0]) || 0);
+					}
+				);
+			}
+		}
+	}
+
+	//1つの指定の数字の出現数を1つ増す
+	this.SetDataPlus=(_Suuji)=>{
+		let _v=++_Ary_Data[_Suuji-1][1];
+		return _v;
+	}
+	//1つの指定の数字の出現数を返す
+	this.GetData=(_Suuji)=>{
+		return _Ary_Data[_Suuji-1][1];
+	}
+	//カウンター値を１つ増す
+	this.SetCountsPlus=()=>{
+		++_CountRun;
+		return _CountRun;
+	}
+	//現在のカウントター値を返す
+	this.GetCounts=()=>{
+		return _CountRun;
+	}
+	//内部保持統計データのコピーを外部に公開
+	this.GetDataAll=()=>{
+		_Fn_ArrangeData();
+		return _Ary_DataSuuji.slice();
+	}
+
+	this.SetArrangeBy=(_Order)=>{
+		_ArrangeBy=$SEISU(_Order);
+	}
+
+	this.GetArrangeBy=()=>{
+		return _ArrangeBy
+	}
+
+	this.RefreshData=()=>{
+		_Fn_ArrangeData();
+	}
+
+}
+
+//くじを新規作成する関数
+function Fn_DispNewKUJI(_ask){
+	//くじ作成値
+	const _KNums=$SEISU( $GEI("_Elm_NMB_KUJI_Max").value );
+	//くじ抽出個数
+	const _KSelNums=$SEISU( $GEI("_Elm_NMB_Selected").value );
+
+	if ( ($SEISU(_ask)===0) || $confirm(`【注意】\r\n現在のくじ数字のチェック状態や統計情報はリセットされます。\r\n1から${_KNums}までの数字から${_KSelNums}個選ぶ、くじを新規作成します。`) ){
+	
+		$GEI("_Elm_KUJI_Nums").textContent=_KNums;
+		$GEI("_Elm_KUJI_Sels").textContent=_KSelNums;
+		//統計データ保持のオブジェクト新規作成
+		MyTokeiData=new CST_TOKEIDATA(_KNums);
+		$GEI("_Elm_RunCounts").textContent=MyTokeiData.GetCounts();		
+		$GEI("_Elm_SEL_Statistics").onchange();
+
+		Fn_Show_KUJINUM(
+			Array( _KNums ).fill().map( (__e,__i)=>{return [__i+1];} ) 
+		);
+
+	}
+}
+
+//設定欄の表示非表示動作
+$GEI("_Elm_CHECK_Setting2").oninput=function(){
+	$GEI("_Elm_DIV_Setting2").style.display=this.checked?"block":"none";
+};
+$GEI("_Elm_CHECK_Setting2").oninput();
+
+//[チェック操作]セレクタで、くじ数字チェックボックスのすべてのオンオフ反転を行う
+$GEI("_Elm_SEL_ChkAll").onchange=function(){
+
+	const _cmd=$SEISU(this.value);
+
+	if(_cmd>0){
+
+	if( $confirm( this.selectedOptions[0].textContent + "します。" ) ){
+
+		for( const [__i,__cb] of Array.from( $GEI("_Elm_DIV_KUJINUM").getElementsByClassName("_CN_SelCheck") ).entries() ){
+			//_cmdが1ならチェックボタンのチェックをオンに、2ならオフに、3なら反転させる,反転はこの記述が速いらしい
+			(_cmd===1 && (__cb.checked=true) ) || (_cmd===2 && (__cb.checked=false) ) || (_cmd===3 && ( __cb.checked^=1 ) || (_cmd===4 && (__i>=0 && __i<9) && ( __cb.checked^=1 ) ) || (_cmd===5 && (__i>8 && __i<19) && ( __cb.checked^=1 ) ) || (_cmd===6 && (__i>18 && __i<29) && ( __cb.checked^=1 ) ) || (_cmd===7 && (__i>28 && __i<39) && ( __cb.checked^=1 ) ) || (_cmd===8 && (__i>38 && __i<43) && ( __cb.checked^=1 ) ) );
+		}
+		Fn_DispCountCheck();
+	}
+	};
+	this.selectedIndex=0;
+}
+
+//くじ新規作成ボタンが押された
+$GEI("_Elm_BTN_Template").onclick=function(){
+	Fn_DispNewKUJI(true);
+}
+
+//くじ抽出個数入力欄がユーザー操作で変更された時の処理
+$GEI("_Elm_NMB_Selected").oninput=function(){
+	let _v=this.value=$SEISU(this.value);
+	$GEI("_Elm_KUJI_Sels").textContent=_v;
+}
+
+//テンプレート設定値セレクタが選ばれたとき
+$GEI("_Elm_SEL_Template").onchange=function(){
+	if(this.selectedIndex>0){
+		[$GEI("_Elm_NMB_KUJI_Max").value,$GEI("_Elm_NMB_Selected").value]=$parse( this.value );
+		this.selectedIndex=0;
+	}
+}
+
+//くじ数字の選択チェック状態がオンのものを数えて個数を表示
+function Fn_DispCountCheck(){
+	let _n=0;
+	for( const __e of $GEI("_Elm_DIV_KUJINUM").getElementsByClassName("_CN_SelCheck") ){
+		_n=_n+( __e.checked==true );
+	};
+	$GEI("_Elm_KUJI_Checked").textContent=_n;
+}
+
+//くじ数字のチェックのオンオフのユーザー操作イベントを処理する
+$GEI("_Elm_DIV_KUJINUM").onchange=function(_ev){
+	if(_ev.target.type="checkbox"){
+		Fn_DispCountCheck();
+	}
+}
+//くじ数字の表示列数を指定するセレクタ操作
+$GEI("_Elm_SEL_KUJICols").onchange=function(){
+ const _value=this.value;
+ if(this.selectedIndex>0){
+ 	$GEI("_Elm_DIV_KUJINUM").style.gridTemplateColumns=`repeat(${_value},auto)`;
+	this.selectedIndex=0;
+ }
+
+}
+
+//フォントサイズ入力欄が入力された処理
+$GEI("_Elm_NUM_LogFontSize").onchange=function(){
+	let _value=$SEISU(this.value);
+	this.value=_value=(_value<this.min ?? this.min) || (_value>this.max ?? this.max) || _value;
+	$GEI("_Elm_DIV_Memo").style.fontSize=`${_value}px`;
+}
+//統計トップクラスを表示するか？
+$GEI("_Elm_CB_DispTopData").onchange=function(){
+	Fn_DispStatistics();
+	$GEI("_Elm_DIV_DispTopData").style.display=this.checked?"block":"none";
+}
+
+//くじを新規作成しておく
+Fn_DispNewKUJI();
+
+//入力欄の初期値から読み取って反映しておく。
+$GEI("_Elm_NUM_LogFontSize").onchange();
+//くじ表示欄の表示状態の初期表示
+$GEI("_Elm_CHECK_Setting1").oninput();
+
+//wimdow.onloadハンドラここまで
+}
+
+//グローバルエリア			
+
+</script>
+</head>
+<body>
+<main>
+	<div id="_Elm_DIV_Menu"><label class="CSS_KUJI_Color1"><input id="_Elm_CHECK_Setting1" type="checkbox">くじ設定</label> <label class="CSS_KUJI_Color2"><input id="_Elm_CHECK_Setting2" type="checkbox">表示設定</label></div>
+	<div id="_Elm_DIV_Setting1">
+
+		<div id="_Elm_DIV_KUJINUM" title="この欄は横幅をマウスで調整して、くじ数字の並びを調整できます"></div>
+
+		<div id="_Elm_DIV_Setting1_1">
+
+			<div>
+			<label>抽出個数<input id="_Elm_NMB_Selected" type="number" class="CSS_INP_NUM" min="1" max="99" value="6"></label>
+			<select id="_Elm_SEL_KUJICols">
+				<option value="0" selected>表示列数</option>
+				<option value="3">3</option>
+				<option value="4">4</option>
+				<option value="5">5</option>
+				<option value="6">6</option>
+				<option value="7">7</option>
+				<option value="8">8</option>
+				<option value="9">9</option>
+				<option value="10">10</option>
+				<option value="11">11</option>
+				<option value="12">12</option>
+			</select>
+			<select id="_Elm_SEL_ChkAll">
+				<option value="0" selected>チェック操作</option>
+				<option value="1">すべてチェック</option>
+				<option value="2">すべてオフ</option>
+				<option value="3">すべて反転</option>
+				<option value="4">01-09反転</option>
+				<option value="5">10-19反転</option>
+				<option value="6">20-29反転</option>
+				<option value="7">30-39反転</option>
+				<option value="8">40-43反転</option>
+			</select>			
+
+			</div>
+
+			<div>
+			<details class="_CSS_Setting_Sec1">
+			<summary>詳細設定</summary>
+			<div style="text-align: right;">
+
+				<div><button id="_Elm_BTN_Template">くじ新規作成</button></div>
+				
+				<div><label title="">
+					<select id="_Elm_SEL_Template" title="定型の組み合わせ設定値を選んで入力できます">
+					<option selected>テンプレート設定値</option>
+					<option value="[31,5]">1-31から5個選ぶ</option>
+					<option value="[43,6]">1-43から6個選ぶ</option>
+					<option value="[37,7]">1-37から7個選ぶ</option>
+					<option value="[5,1]">1-5から1個選ぶ</option>
+					</select>
+				</label></div>
+
+				<div><label>くじ作成値：<input id="_Elm_NMB_KUJI_Max" type="number" class="CSS_INP_NUM" min="5" max="99" value="43"></label></div>
+				<div>シャッフル回数指定：<select id="_Elm_SEL_Shuffle">
+					<option value="0">0(しない)</option>
+					<option value="1">1回</option>
+					<option value="2">2回</option>
+					<option value="3">3回</option>
+					<option value="4">4回</option>
+					<option value="10" selected>1～5回任意</option>
+				</select></div>
+					<div>抽出方法：<select id="_Elm_SEL_RndMethod">
+					<option value="0" selected>任意の方法</option>
+					<option value="1">ランダム</option>
+					<option value="2">順当</option>
+				</select></div>
+
+				</div>
+			</details>
+			<details><summary>自由メモ欄</summary>
+				<div><textarea class="_CLS_Memo2" id="_Elm_TA_Memo2" placeholder="自由メモ欄" title="作業用などに自由に書けるメモ欄です"></textarea></div>
+			</details>
+			<details id="_Elm_DET_Statistics"><summary>抽出統計</summary>
+				<div><select id="_Elm_SEL_Statistics" title="データの表示順序を変更します">
+					<option value="0" selected>数字順</option>
+					<option value="1">頻出順</option>
+					<option value="2">レア順</option>
+				</select>
+				<label><input type="checkbox" id="_Elm_CB_DispTopData">統計トップ数字を表示</label>
+				</div>
+				<textarea class="_CLS_Memo2" id="_Elm_TA_ToukeiData" placeholder="統計データ表示欄" readonly></textarea>			
+			</details>
+		</div>
+			
+			</div>
+		</div>
+	</div>
+	
+	<div id="_Elm_DIV_Setting2">
+		<div><label><input id="_Elm_TEXT_Separator" type="text" class="CSS_INP_TXT" size="2" maxlength="2" value=" " title="ログ表示に使用、2文字まで">数字間の区切り文字</label></div>
+		<div><label><input id="_Elm_CB_Zero" type="checkbox" checked title="1～9の1桁数値を0を使い2桁で表示します">0で2桁表示</label></div>
+		<div><label><input id="_Elm_CB_Order" type="checkbox" checked>数値順に並び替える</label></div>
+		<div>
+			<details class="_CSS_Setting_Sec1"><summary>表示詳細設定</summary>
+				<div><label><input id="_Elm_CB_Group" type="checkbox">数字の7つのグループの所属を付記</label></div>
+				<div><input type="number" max="30" min="16" value="24" size="2" id="_Elm_NUM_LogFontSize">ログ欄文字サイズ</div>
+			</details>
+		</div>
+	</div>
+	<div id="_Elm_DIV_DispTopData"><input type="text" readonly id="_Elm_TXT_Statistics"></div>
+	<div><span class="_CSS_Disp_Settng"><span title="くじを実行したときに抽出する数字の個数です">くじ抽出個数:<code id="_Elm_KUJI_Sels"></code></span>&#47;<span title="現在、選択チェックが付いている、抽出候補の数字の総数です">有効個数:<code id="_Elm_KUJI_Checked"></code></span>&#47;<span title="現在のくじがいくつまでの数字で作成したかを表します">現在のくじ値:<code id="_Elm_KUJI_Nums"></code></span>&#47;<span>抽出回数:<span id="_Elm_RunCounts"></span></span></span></div>
+	<div><button id="_Elm_BTN_Clear_All" title="【注意】ログを全て削除します">クリア</button> <button id="_Elm_BTN_Clear" title="ログを古い1行だけ削除します">1行削除</button> <button class="CSS_BTN_Run" id="_Elm_BTN_Run2">重複なし抽出</button> <button class="CSS_BTN_Run" id="_Elm_BTN_Run">実行</button></div>
+
+	<div id="_Elm_DIV_Setting2_1">
+		<div id="_Elm_DIV_Memo"></div>		
+	</div>
+</main>
+<div>
+<details>
+<summary>操作説明</summary>
+<pre>
+【簡単な操作説明】
+・初期の設定では
+くじは1～43の数字の中から6個を選ぶことになっています。
+[実行]ボタンをクリックするとくじから数字を抽出します。
+結果はログ欄に表示されます。現行では2カ所に同じものが表示されます。
+※Webブラウザのメニューからページを再読み込みすると、このアプリは再起動して初期状態になります。
+設定や操作によって、何らかの不具合が出たらページ再読み込みを推奨します。
+
+
+
+【設定の変更の仕方】
+・アプリの設定欄は大きく分けて２つあります。
+[くじ設定]と[表示設定]のそれぞれのチェックボックスで表示と非表示(隠す)を切り替えることができます。
+・[くじ設定]は、くじの抽出方法などの動作設定をします。
+・[表示設定]は、くじの実行の結果である抽出した数字を表示するログ欄に関わる設定です。
+
+
+
+[くじ設定]欄での設定
+
+・[くじ設定]内で表示されている、抽出に使用する、くじ数字一欄の表示枠は右下の角(角に■があります)をマウスドラッグで幅を変更できます。
+枠の幅によって横一行あたりのくじ数字の個数が変りますので、たとえば横1行で7個づつと見やすいように調整可能です。
+
+・各くじ数字に付いているチェックを外した数字は、くじの対象から外され抽出されることはありません。
+※くじを新規作成すると、それまでのチェック状態は継承されませんので注意です。
+
+[くじ抽出個数]入力欄
+くじの実行時に抽出される数字の数です。初期値は６です。
+
+[表示列数]セレクタ
+くじ数字一欄の縦に何列表示にするかを変更できます。
+例えば７つづつならカレンダーの数字の並びですし、７つづつで同じグループの数字が分かり易くなります。
+
+[チェック操作]セレクタ
+一度に、すべてや特定の範囲のチェック状態をオン、オフ、反転(オンならオフ、オフならオン)することができます。
+たとえば[01-09反転]は01～09の範囲の全ての数字のチェック状態を反転させます。
+このように特定の範囲だけをオンやオフに簡単に変更できます。
+
+
+
+[詳細設定]欄での設定
+
+[くじ新規作成]ボタン
+１から[くじ作成値]欄の値までの、くじ数字を新規に作成し直します。
+※新規作成しますと、これまでの、くじ数字のチェックボックスのチェック状態はすべてリセットされチェック状態になります。
+
+[テンプレート設定値]セレクタ
+たとえば、[1-43から6個選ぶ]を選ぶと、
+[くじ作成値]欄には43、[くじ抽出個数]欄には6が入力されます。
+このように定型の設定値が即、入力できます。
+ただし、入力だけですので、[くじ新規作成]ボタンを使わなければ、くじ数字は新規作成されません。
+[くじ抽出個数]は、[実行]ボタンでくじ数字の抽出時に、ここでの値が使用されます。
+
+[くじ作成値]入力欄
+[くじ作成値]をクリックすると表示されます。今まで通り、テンプレ以外の値など直接入力できます。
+
+[シャッフル回数指定]セレクタ
+くじ数字をシャッフルする回数を選ぶことができます。
+※このアプリでいう『シャッフル』とは
+1列になっているモノを先頭から順番に1つづつ、並びの最後まですべてを、任意の位置のモノ(自分も含めて)と入れ替えます。
+つまりシャッフル指定が1回でも理論的には任意な順になります。作者は2回で十分と考えます。
+[0(しない)]はシャッフルを全くしません。数字順のままで抽出方法に進みます。
+[1～5回任意]は1回以上5回までの回数で、アプリが任意で決めます。これが初期値で推奨です。
+
+[抽出方法]セレクタ
+[実行]時の、くじ数字の抽出方法を指定できます。
+[任意の方法]では、方法自体は毎回アプリ側が以下に用意された方法を任意に選びます。これが初期値で推奨です。複数回実行するほどトータルでランダム性が高まると思われます。
+[ランダム]は1個づつランダム位置から抜き出し抽出する方法。
+[順当]は一列に並べてある仮定で先頭から[くじ抽出個数]の数だけ一度に抽出します。
+
+※[実行]における、くじ数字抽出の流れ
+1.[実行]を行うごとに、まず数字順でチェックがあるものだけを1列に集められると考えてください。
+2.次にシャッフルをします。
+3.そこから指定の抽出方法で指定の個数を抽出します。
+
+
+[自由メモ]欄
+テキスト文字を自由に書き込めます。
+この欄はアプリは全く操作しませんので、ユーザーが内容を改変しない限りそのままです。
+ただし、ユーザーがページを更新や閉じたりして、アプリの再起動や終了をすると内容は消えますので注意。
+
+[抽出統計]欄
+各くじ数字が何度出ているかカウントされた数値を表示します。
+()内の%の数値は出現率です。高い数値ほど出やすいという事になります。
+この統計をリセットするには、くじを新規作成します。
+※選択チェックされていない数字は抽出される事はありません。
+
+[数字順]セレクタ
+各数字の統計データを表示する並び順を指定できます。
+[通常数字順]:初期設定では数字順です。
+[頻出順]:出現回数の最も多い順です。
+[レア順]:出現回数の最も少ない順です。
+
+[統計トップ数字を表示]チェックボックス
+オンにすると専用の表示欄が表示され統計データの並び順設定から先頭の数字をくじと同じ抽出数だけ表示させます。
+オフにすると表示欄も非表示になります。
+
+
+
+[表示設定]欄での設定
+
+[数字間の区切り文字]入力欄
+初期値は半角スペース1文字になっています。この文字を使って抽出された数字を区切って表示します。
+半角全角問わず自由な文字を2文字まで使用できます。無しも可能です。
+
+[0で2桁表示]チェックボックス
+オンにすると、1~9の一桁の数字を表示するのに上位の桁に0を使い、たとえば1なら01と表示します。
+
+[数値順に並び替える]チェックボタン
+抽出実行結果を数字順に並び替えてログ表示します。
+
+
+[表示詳細設定]欄での設定
+
+[数字の7つのグループの所属を付記]チェックボックス
+抽出した各くじ数字を表示する際に数字の後ろに、この数字の所属するグループを表す漢数字が付記されます。
+※ここで言うグループ分けの仕方は全くじ数字が七つのグループに分けられていると考え、
+その表す数値を7で割った余りの値でグループ分けします。
+たとえば1,8,15,22,29,36,43はみな7で割った余りが同じ1ですのでグループを「一」(漢数字の1)とします。
+簡単に言えば、１つのくじ数字は数値として７の増減ごとに同じグループということです。
+たとえば、カレンダー上で曜日ごとに横７つづに並べた数字を縦の並びで観れば、
+同じ曜日になる数字が同じグループとして分類しているのと同じです。
+
+
+[ログ欄文字サイズ]入力欄
+ログの文字のサイズを16～30の数値で指定変更できます。ピクセル単位です。
+
+
+
+--- 以下は常に表示される操作部 ---
+
+[クリア]ボタン
+抽出結果ログをすべて削除します。消してしまうと復帰できませんので注意。
+
+[1行削除]ボタン
+抽出結果ログから最も古い先頭の1行だけを削除します。
+
+[重複なし抽出]ボタン
+選択チェックのある数字を重複のないようにすべて抽出します。
+[ログ]欄には、通常の[実行]ボタンによる抽出数字と区別が付くように、
+”重複なし抽出:START”と”重複なし抽出:END”の間にまとめて表示されます。
+※この抽出方法での数字は抽出統計にはカウントされません。
+
+[実行]ボタン
+くじから数字抽出を実行します。結果は[ログ]欄に表示されます。
+
+くじ抽出個数:6/有効個数:43/現在のくじ値:43/抽出回数:01
+ の表示部分は
+ここは入力欄でなく現在の設定を確認用です。つまり、くじの今の状態です。
+[くじ抽出個数]は[実行]で抽出する個数、つまり、くじとして選ぶ数字の個数です。
+[有効個数]は[くじ設定]でチェックされて抽出候補になっている数字の全個数です。
+[現在のくじ値]は[くじ設定]にある[くじ作成値]入力欄の値ではなく、現在有効になっている、くじのくじ数字作成時のものです。
+[抽出回数]はくじ数字の抽出を行う[実行]をした回数です。
+
+[ログ]欄
+[実行]ボタンで、くじ数字の抽出結果が表示されます。
+ユーザーのテキスト入力での書き換え書き込みはできませんが、[1行削除],[クリア]ボタンで消すことはできます。
+
+</pre>
+</details>
+
+<details>
+<summary>更新履歴</summary>
+<pre>※[2.XX]などの数字は、アプリのバージョンを表します。
+
+[2.17]
+【変更】
+・[シャッフル回数指定]セレクタに[3回]を追加しました。
+・デザインを若干変更しました。
+・コードの改善を行いました。
+【新機能】
+・[統計トップ数字を表示]チェックボックスをオンにすると統計データの並び順先頭から抜き出した数字も表示されます。
+
+[2.16]
+【新機能】
+・[通常数字順]セレクタの追加で、[抽出統計]欄に表示する各数字の統計データの並び順を指定できます。
+
+[2.15]
+【変更】
+・実行した抽出数字の1行テキスト表示欄は廃止しました。従来通り[ログ]欄で確認して下さい。
+【新機能】
+・重複なし抽出機能を追加しました。
+一度の実行で数字を重複なく抽出する組み合わせを取得します。
+
+[2.14]
+【新機能】
+・[くじ設定]内に[抽出統計]欄を追加しました。
+抽出された数字は統計にカウントされ表示されます。
+
+[2.13]
+【変更】
+・設定欄内の配置を大幅に変更しました。たとえば、[自由メモ]欄は、くじ設定欄へ移動しました。
+【新機能】
+・[ログ欄文字サイズ]入力欄で、ログ表示のフォントサイズを変更できるようにしました。
+
+[2.12]
+【新機能】
+・[くじ設定]欄に[表示列数]セレクタを追加しました。
+くじ数字選択チェック一覧の表示列数(※縦に何列表示するか)を指定できます。
+※スマートフォン版ではタッチ操作での枠のサイズ調整が困難である対策に設置しました。枠の調整も従来通り可能です。
+
+[2.11]
+【不具合修正】
+・WEBブラウザによっては文字化けを起こしてスクリプトプログラムが実行されない不具合を修正。
+・スマートフォン版のWEBブラウザでの表示にも支障がないようにレイアウトを変更しました。
+・くじ設定にある、くじ数字の候補選択チェックがある枠は以前の[2.9]で機能を付けましたが
+細かい操作になるので、PC上でのマウス使用なら問題ないですが、
+スマートフォン上のタッチ操作では厳しいようなので、反応範囲を拡げて改善しました。
+【新機能】
+・[表示設定]内に[表示詳細設定]を追加しました。
+[数字を7で割った余りを付記する]をチェックすると、抽出数字のそれぞれに、７グループ中の所属を識別するための漢数字が付記されます。
+
+[2.10]
+【不具合修正】
+・[シャッフル回数指定]セレクタにおいて、
+バージョン2.8までの[1～10回任意]や、前バージョン2.9の[1～5回任意]を指定すると、シャッフル10回固定になっていましたので修正しました。
+[1～5回任意]は設定通り、最低1回,最高5回のシャッフル回数が毎回任意に変わります。
+
+[2.9]
+【新機能】
+・[くじ設定]内のくじ数字一欄の表示枠は右下の角をマウスドラッグで横幅を変更できるようにしました。
+・自由に使えるメモ欄を追加しました。テキストが自由に書き込めたりコピーできます。作業用の一時メモに。
+【変更】
+・[くじ設定]の[詳細設定]にある[シャッフル回数指定]セレクタの項目内容を[1～5回任意]など回数を調整しました。
+・[チェック操作]セレクタに[01-09反転]などの項目を追加しました。
+
+[2.8]
+【変更】
+・設定欄などの表示を変更しました。機能に変更はありません。
+・[くじ作成値]入力欄の表示を変更しました。初期では表示されていませんが、クリックで表示して従来通り入力が可能です。
+・機能は同じですがプログラムコードを高速動作向きに見直しました。
+
+[2.7]
+【不具合修正】
+・これまでのバージョン2.6まで、くじ数字のチェックを操作する[全て選択解除]の動作が反転動作となっていました。
+これに対処するべく、[全て選択],[全て選択解除],[選択を反転]の３つのボタンに替えて、
+省スペースにもなるので、新たに[チェック操作]セレクタに同じ機能をつけました。
+</pre>
+</details>
+</div>
+</body>
+</html>
