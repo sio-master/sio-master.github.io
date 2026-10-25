@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>くじ当てシュミレーション 0.1.5β</title>
+<style>
+
+input.cb_inv{
+	display: none;
+}
+
+.num {
+  display: inline-block;
+  position: relative;
+	color: rgb(248, 104, 152);
+	font-family: monospace;
+  font-size: 18px;
+  font-weight: initial;
+  line-height: 1;
+  /* 上下の余白（線の隙間）と左右の余白（折り返し部分のスペース） */
+  padding: 3px 0px;
+	margin: 3px 0px;
+}
+
+/* 上側の「[」を横にした線 */
+.num::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+	width: 50%;
+	transform: translateX(-50%);
+  right: 0;
+  height: 3px; /* 折り返し部分の縦の長さ */
+  border-top: 1px solid;   /* 上のメイン線 */
+  border-left: 1px solid;  /* 左の折り返し */
+  border-right: 1px solid; /* 右の折り返し */
+}
+
+/* 下側の「]」を横にした線 */
+.num::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+	width: 50%;
+	transform: translateX(-50%);
+  right: 0;
+  height: 3px; /* 折り返し部分の縦の長さ */
+  border-bottom: 1px solid; /* 下のメイン線 */
+  border-left: 1px solid;   /* 左の折り返し */
+  border-right: 1px solid;  /* 右の折り返し */
+}
+
+input.cb_inv:checked + .num::after {
+	content: '';
+  position: absolute;
+  top: 0;
+	left: 50%;
+  width: 20%; height: 100%;
+  background: #555;
+	transform: translateX(-50%);
+  transform-origin: top;
+
+  /* 縦方向に引いた鉛筆特有の「濃淡・かすれ」を表現 */
+  background: linear-gradient(
+    185deg, /* わずかに傾けて手書き感を出す */
+    rgba(80, 80, 80, 0) 0%,
+    rgba(74, 74, 74, 0.7) 15%,
+    rgba(60, 60, 60, 0.4) 45%,
+    rgba(80, 80, 80, 0.8) 75%,
+    rgba(80, 80, 80, 0) 100%
+  );
+  
+  /* 線の両端を少し尖らせて鉛筆らしさを補強 */
+  border-radius: 2px;
+  /* 文字の下に敷く場合は 'negative'、文字の上に重ねる場合は削除 */
+  pointer-events: none;
+}
+
+.vertical-left-to-right {
+  writing-mode: vertical-lr;
+	position: relative;
+	display: inline-block;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 4px 2px;
+	border-left:1px solid rgb(248, 104, 152);
+	border-right:1px solid rgb(248, 104, 152);
+	width: 100%;
+}
+
+.vertical-left-to-right label{
+	position: relative;
+  writing-mode:initial;
+}
+
+body{
+	margin: 0;
+	padding: 4px;
+	overflow: scroll;
+}
+
+main{
+	box-sizing: border-box;
+	overflow: hidden;
+	position: relative;
+	display: block;
+	margin: 0;
+	padding: 0;
+}
+
+#_DIV_Title{
+	display: inline-block;
+	position: relative;
+	box-sizing: border-box;
+	writing-mode: sideways-lr;
+	background-color: #f29600;
+}
+
+#_Title11{
+	color:#1d2088;
+	font-size: 24px;
+}
+
+#_title2{
+	color: #e60012;
+	font-size: 32px;
+}
+
+#_Elm_DIV_KUJI{
+	position: relative;
+	display: inline-block;
+	margin: 0;
+	padding: 4px;
+	box-sizing: border-box;
+	border: 0 solid rgb(248, 104, 152);
+	width: 720px;
+	background-color: #fffff1;
+}
+
+.Kuchi{
+	position: relative;
+	display: inline-block;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	max-width: 20%;
+	min-width: 20%;
+	background-color: #fffff1;
+}
+
+.Kuchi_Name{
+	position: relative;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	text-align: center;
+	font-weight: bold;
+	font-size: 36px;
+	font-family: monospace;
+	font-style: italic;
+	color:color-mix(in srgb, rgb(71, 48, 56), #fffff1 100%);;
+	border-radius: 24px 24px 0 0;
+  border: 1px solid #f86898;
+  border-bottom: none; 	
+	background-clip:padding-box;
+	background: linear-gradient(to right,#f86898,30%,transparent);
+  -webkit-text-stroke: 2px #d87093; /* 枠線の太さと色 */
+  paint-order: stroke fill; /* 枠線を先に描画して文字のつぶれを防ぐ */
+	width: 100%;
+}
+
+.Kuchi_Name::before{
+	box-sizing: border-box;
+	overflow: hidden;
+  content: "組合わせ";
+  position: absolute;
+	margin: 0;
+	padding: 8px 20px;
+  top: 0;
+  left: 0;
+	white-space: nowrap;;
+	transform: scale(0.38);
+	transform-origin: left top;
+	font-weight: bold;
+	font-family:serif;
+	font-style: normal;
+	color: color-mix(in srgb,#f86898, black 10%);
+	-webkit-text-stroke: initial;
+}
+
+.CSS_BTN_RPick{
+	font-size: 16px;
+	font-family: monospace;
+	position: relative;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 2px;
+	color:#f0f8ff;
+	border-color: #f0f8ff;
+	background-color: rgb(248, 104, 152);
+	clip-path: polygon(0% 0%, 100% 0%, 100% 80%, 50% 100%, 0% 80%);
+	zoom: 0.6;	
+}
+
+.CSS_BTN_ResetKUCHI{
+	font-size: 16px;
+	font-family: monospace;
+	position: relative;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 2px;
+	color:#f0f8ff;
+	border-color: #f0f8ff;
+	background-color: rgb(248, 104, 152);
+	clip-path: polygon(0% 0%, 100% 0%, 100% 80%, 50% 100%, 0% 80%);
+	zoom: 0.6;	
+}
+
+
+#_Elm_DIV_InDETAILS{
+	position: relative;
+	background-color: #f0f8ff;
+	color: #121570;
+	margin: 4px;
+}
+
+._Elm_DTLS_Ticket{
+	position: relative;
+	display: inline-block;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 4px;
+	border: 1px dotted #1d2088;
+	background-color: aliceblue;
+	color: #f29600;
+	font-family: monospace;
+	font-size: 16px;
+	font-weight: normal;
+}
+
+#_Elm_DIV_Ticket{
+	position: relative;
+	display: inline-block;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 4px 10px;
+	border: 1px dashed;
+	background-color:white;
+	color: #1d2088;
+	font-family: monospace;
+	width: 320px;
+
+	overflow: hidden;
+
+}
+#_Elm_DIV_DispKTNums{
+	position: relative;
+	display: inline-block;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 4px;
+	background-color: #f0f8ff;
+	color: #121570;
+	font-family: monospace;
+	font-size: 20px;
+	width: 296px;
+	background-image: repeating-linear-gradient(0deg, #99c4ff, #99c4ff 1px, transparent 1px, transparent 2px);
+	font-family: serif;
+	font-weight: bold;
+	line-height: 1;
+	min-height: 108px;
+	overflow: hidden;
+}
+
+#_Elm_DIV_KTTitle{
+	position: relative;
+	display: inline-block;
+	box-sizing: border-box;
+	font-family: serif;
+	font-weight: bold;
+	font-size: 20px;
+}
+
+#_Elm_SEL_BuildNewKUJI{
+	background-color: #f86898;
+	color: #f0f8ff;
+}
+
+
+#_Elm_BTN_Start{
+
+}
+
+#_Elm_TA_DispA{
+	box-sizing: border-box;
+	position: relative;
+	overflow: scroll;
+	white-space: pre;
+	margin: 0;
+	resize:none;
+	font-family: monospace;
+	width: 100%;
+	height: 12lh;
+	
+}
+#_Elm_TA_DispB{
+	box-sizing: border-box;
+	position: relative;
+	overflow: scroll;
+	white-space: pre;
+	margin: 0;
+	padding: 0;
+	resize:vertical;
+	font-family: monospace;
+	font-size: 24px;
+	line-height: 1.0;
+	width: 100%;
+	height: 13lh;
+	resize: none;
+}
+._Elm_BTN_DispRule{
+	display: none;
+}
+
+.CSS_PUp_KUJIRule{
+	border: 1px dashed #1d2088;
+	background-color: #ffffff;
+	color:#636363;
+	font-weight: 600;
+	font-family: serif;
+
+}
+
+.CSS_CenterTitle{
+	text-align: center;
+	font-weight:900;
+}
+
+details{
+	position: relative;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0 0.5em;
+	overflow: hidden;
+}
+
+#_Elm_DTLS_Setting{
+	background-color: #121570;
+	color: #f0f8ff;
+}
+
+[inert] > * {
+	/*
+	filter:grayscale(1.0);
+	*/
+}
+
+</style>
+<script>
+// ↓ ↓ ↓ ↓ ↓ window.onload(){}外のグローバルエリア ↓ ↓ ↓ ↓ ↓
+
+/* 高速化の原則
+【ループに関して】
+・ループ内で、いちいち毎回、固定のDOM要素の参照を取得しない。当然にループ前に事前に取得して一回で済ます。
+・ループ内で、条件判定は極力避けられるなら避ける。コード量は増えるがループ前に判断してループ自体を条件ごとに配置したほうが動作は高速化。
+
+
+*/
+
+//組み込み関数の短縮参照
+	const {log:$log}=console;
+	const {trunc:$trunc,sign:$sign,sin:$sin,cos:$cos,round:$round,ceil:$ceil,random:$rnd,floor:$floor,PI:_PI}=Math;
+	const {assign:$assign}=Object;
+	const {isArray:$isArray}=Array;
+	const {parse:$parse}=JSON;
+
+//DOMモデル短縮参照
+	const {document:$doc}=window;
+	const $GEI = _id => $doc.getElementById(_id);
+	const $CE = _tag => $doc.createElement(_tag);
+	const $CDF = () => $doc.createDocumentFragment();
+	const $GEC = (cn, _e = $doc) => _e.getElementsByClassName(cn);
+
+
+//カスタム関数
+//値を整数変換して返す。数値化できない場合0を返す
+const $SEISU=(_v)=>{ return $trunc(Number(_v ?? 0)) };
+//子要素を全て削除する
+const $ClearAllChildren=function(_Elm){
+	if(_Elm.replaceChildren){
+		_Elm.replaceChildren();
+	}else if(_Elm.parentNode.replaceChild){
+		_Elm.parentNode.replaceChild(_Elm.cloneNode(false),_Elm);
+	}else{
+		_Elm.innerHTML="";
+	}	
+}
+function _Objct_Global_variable(){
+	let _MyData=[0];//保持する統計データ
+
+	this.TimerID=null;//非同期関数実行に使うタイマーID
+	this.Counter=0;//カウンタ用
+	this.KUJINumbers=0;//抽選する、くじ主数字の最大値
+	this.KUJINumbersSelected=0;//主数字の抽出数
+	this.KUJINumbersSub=0;//副数字の抽出数
+	this.MyTicket=[];
+	this.Atari=[ [],[] ];
+	//抽選した主数字と副数字を文字列化して返す
+	this.GetAtariNumbersString=function(){
+		const _Atari=this.Atari;
+		return `抽選数字:${_Atari[0].join(" ")} ${_Atari[1].map(_e=>`(${_e})`).join("")}`
+	}
+	//保持している統計データをテキスト化したものを返す
+	this.GetMyDataByText=function(){
+		let __v="データ無し";
+		for(let [ ___Level , ___Kousu ] of _MyData.entries()){
+			
+			if(___Level===0){
+				___Kousu=(___Kousu ?? 0);			
+				__v=`外れ:${String(___Kousu).padStart(5," ")}口`;				
+			}else{
+				__v+=`\r\n的中レベル${___Level}：${String(___Kousu).padStart(5," ")}口`;
+			}
+		}
+		return __v;
+	};
+	//統計データに１回分のデータを追加
+	this.AddMyData=function(_AryData){
+		if($isArray(_AryData)){
+			for( const [ ___Level , ___Kousu ] of _AryData.entries() ){
+				_MyData[___Level]=(_MyData[___Level] ?? 0) + (___Kousu ?? 0);
+			}
+			return true;//追加をした
+		}
+		return false;//追加できるデータではない
+	};
+	this.ClearMyData=()=>{_MyData=[0]};//保持している統計データを削除
+}
+var $MyGlobal=new _Objct_Global_variable;
+
+// ↑ ↑ ↑ ↑ ↑ window.onload(){}外のグローバルエリア ↑ ↑ ↑ ↑ ↑
+window.onload=()=>{
+ 
+//抽出した数字の配列を返す関数
+//_AryNum：数値か配列：数値のとき１からこの値を最大値にしたすべての数字が抽出候補、配列ならその要素はすべて抽出候補、_n：主数字の抽出個数、_bn：副数字の抽出個数、_sfl：シャッフル指定、_method：抽出方法
+function Fn_GetRandamElement2(_AryNum,_n,_bn,_sfl,_method){
+	
+	let _nKNum=0;
+
+	if($isArray(_AryNum)){
+		_nKNum=_AryNum.length;
+		for( const [__i,__e] of _AryNum.entries() ){
+			_AryNum[__i]=String(__e).padStart(2,"0");//要素の数字をすべて２桁文字列で統一	
+		}
+	}else{
+		_nKNum=$SEISU(_AryNum);
+		_AryNum=Array(_nKNum);
+		for(let __i=0;__i<_nKNum;__i++){
+			_AryNum[__i]=String(__i+1).padStart(2,"0");//要素の数字をすべて２桁文字列で統一
+		}
+	}	
+
+	//シャッフル回数を決定
+	_sfl=$SEISU(_sfl);
+	if(_sfl>9){_sfl=$floor( $rnd()*5 )+1};
+
+	//配列全要素をシャッフルする
+	for(let _i=0;_i<_sfl;_i++){
+		_AryNum.forEach(
+			function(__e,__i){
+				const __r=$floor($rnd()*(_nKNum));//０～(要素数ー１)までのインデックス値をランダムに発生
+				//値交換は分割代入では配列作成の分遅いので通常の代入法を使う。
+				_AryNum[__i]=_AryNum[__r];_AryNum[__r]=__e;
+			}
+		);
+	}
+
+	//くじ数字候補を要素にする配列から抽出する要素だけを受け取る配列を用意
+	let _Ary_Selected=[ [] , [] ];
+		
+	_method=$SEISU(_method);
+	if(!_method){_method=$floor( $rnd()*2 )+1;};
+	
+	//選択された抽出方法の実行
+	switch( _method ){
+	
+	case 2:{
+		//順当：先頭の要素から１度に_n個を取り出す
+		_Ary_Selected[0]=_AryNum.slice(0,_n).sort();//主数字の抽出
+		_Ary_Selected[1]=_AryNum.slice(_n,_n+_bn).sort();//副数字の抽出
+		break;
+	}
+	default:{
+		//ランダム：要素を１個づつランダムに抜き出しながら取り出す
+		let _nLoop=(_n<_AryNum.length)?_n:_AryNum.length
+		//主数字の抽出
+		for(let _i=0; _i<_nLoop;_i++){
+			let _r=$floor($rnd()*(_AryNum.length))
+			_Ary_Selected[0].push(_AryNum[_r]);
+			_AryNum[_r]=_AryNum[_AryNum.length-1];
+			_AryNum.pop();
+		};_Ary_Selected[0].sort();
+		
+		_n=(_n===7)?2:1;
+		_mLoop=(_n<_AryNum.length)?_n:_AryNum.length;
+		//副数字の抽出
+		for(let _i=0;_i<_mLoop;_i++){
+			let __r=$floor( $rnd()*(_AryNum.length) )
+			_Ary_Selected[1].push(_AryNum[__r]);
+			_AryNum[__r]=_AryNum[_AryNum.length-1];
+			_AryNum.pop();
+		};_Ary_Selected[1].sort();
+	}
+	}
+
+	return _Ary_Selected;//抽出した要素だけの新しい配列を返す：配列構造：[ [...主数字] , [...副数字] ]			
+};
+
+//くじエントリー用紙表示用の要素を作成
+//_Nums:くじの最大値
+function Fn_BuildSheet(_Nums){ 
+
+		_Nums=$SEISU(_Nums);
+
+		//くじ全体表示枠
+		const Elm_DIV_KUJI=$GEI("_Elm_DIV_KUJI");
+		Elm_DIV_KUJI.onchange=function({target:_Elm_CB_Number}){
+			//エントリーシートのチェックボックスが変化した時だけの処理
+			if ( _Elm_CB_Number.className==="cb_inv" ){
+				Fn_BuildTicketFromSheet( Fn_ReArray_KUJIEntry() );
+			}	
+			
+		}
+		//くじの全口を消去
+		$ClearAllChildren(Elm_DIV_KUJI);
+	
+		const Fragment1=$CDF();
+		
+		for(let __i=1,__div;__i<=_Nums;__i++){
+
+			if((__i % 10)===1){
+				__div=$CE("div");
+				Fragment1.append(__div);
+			};
+
+			let _label=$CE("label");
+			let __ChkBox=$CE("input");
+			$assign(__ChkBox,{type:"checkbox",className:"cb_inv",checked:false,value:String(__i).padStart(2,"0")})
+			let __span=$CE("span");
+			$assign(__span,{className:"num",textContent:__i});
+			_label.append(__ChkBox,__span);
+			__div.append(_label);
+
+		};
+
+		const Fragment2=$CDF();
+
+		for( const __e of ["A","B","C","D","E"] ){
+
+			const _Kuchi=$CE("div")
+			$assign(_Kuchi,{className:"Kuchi"});
+
+				const _Kuchi_Name=$CE("div");
+				$assign(_Kuchi_Name,{className:"Kuchi_Name",textContent:__e});
+
+				const _VLToR=$CE("div");
+				$assign(_VLToR,{className:"vertical-left-to-right" ,onchange:null } );
+				_VLToR.append(Fragment1.cloneNode(true));
+				
+				//各口にランダムピックボタンを付ける
+				const _BTN_RPick=$CE("button");
+				$assign(_BTN_RPick,{ type:"button", className:"CSS_BTN_RPick" ,textContent:"ランダムピック" ,onclick:Fn_BTN_RPick_onclick } );						
+				_VLToR.lastChild.append(_BTN_RPick);
+				
+				//各口にチェッククリアボタンを付ける
+				const _BTN_ResetKUCHI=$CE("button");
+				$assign(_BTN_ResetKUCHI,{ type:"button", className:"CSS_BTN_ResetKUCHI" ,textContent:"クリア" ,onclick:Fn_BTN_ResetKUCHI_onclick } )
+				_VLToR.lastChild.append(_BTN_ResetKUCHI);
+
+			_Kuchi.append(_Kuchi_Name,_VLToR);
+			Fragment2.append(_Kuchi);
+
+		};
+	//表示
+	Elm_DIV_KUJI.append(Fragment2);
+};
+
+function test_RPick(){
+	const Col_CB_EntryNum=$GEI("_Elm_DIV_KUJI").getElementsByClassName("vertical-left-to-right")[0].getElementsByTagName("input");
+
+	for(const __Elm_CB_EntryNum of Col_CB_EntryNum ){
+		__Elm_CB_EntryNum.checked=true;
+	}
+
+}
+
+//ランダムピックボタンが押された処理
+function Fn_BTN_RPick_onclick(){
+//_Elm_CB_RPickDifferently
+	let _AryPick=[];
+	const Col_CB_EntryNum=this.parentElement.parentElement.getElementsByTagName("input");
+
+	if(!$GEI("_Elm_CB_SetRPick").checked){//不足分だけを埋める
+
+		for(const __Elm_CB_EntryNum of Col_CB_EntryNum ){		
+			if(!__Elm_CB_EntryNum.checked){
+				_AryPick.push(__Elm_CB_EntryNum.value);//未選択の数字のみを集める
+			}
+		}
+		//抽出数を計算
+		let _nPick=$MyGlobal.KUJINumbersSelected-(Col_CB_EntryNum.length-_AryPick.length);
+
+		if($GEI("_Elm_CB_RPickDifferently").checked){
+			//他の口で選択済みの数字は除く
+			_AryPick=[...new Set(_AryPick).difference(new Set( Fn_ReArray_KUJIEntry().flat() ))];
+		}
+		
+		if(_nPick>0){
+			_AryPick=Fn_GetRandamElement2(_AryPick,_nPick,0,10,0)[0]	
+		}else{ return;}
+
+	}else{//今の状態に関係なく新規に規定数をランダムピックを行う
+
+		for(const __Elm_CB_EntryNum of Col_CB_EntryNum ){
+			__Elm_CB_EntryNum.checked=false;
+			_AryPick.push(String(_AryPick.length+1).padStart(2,"0"));
+		}
+
+		if($GEI("_Elm_CB_RPickDifferently").checked){
+			//他の口で選択済みの数字は除く
+			_AryPick=[...new Set(_AryPick).difference(new Set( Fn_ReArray_KUJIEntry().flat() ))];
+		}
+		_AryPick=Fn_GetRandamElement2(_AryPick,$MyGlobal.KUJINumbersSelected,0,10,0)[0];
+	}	
+
+	for(const __nPickNum of _AryPick ){	
+		const ___Elm_CB_EntryNum=Col_CB_EntryNum[ Number(__nPickNum)-1 ]
+		___Elm_CB_EntryNum.checked=true;
+	}
+
+	Fn_BuildTicketFromSheet( Fn_ReArray_KUJIEntry() );
+}
+
+//
+function Fn_BTN_ResetKUCHI_onclick(){
+
+	for(const __Elm_CB_EntryNum of this.parentElement.parentElement.getElementsByTagName("input") ){
+		__Elm_CB_EntryNum.checked=false;
+	}
+	Fn_BuildTicketFromSheet( Fn_ReArray_KUJIEntry() );
+
+}
+
+//エントリーシート各口のチェック数字を取得
+//戻り値の配列:[ [...A],[...B],[...C],[...D],[...E] ]
+function Fn_ReArray_KUJIEntry(){
+
+	const _Col_Kuchi=$GEC("Kuchi",$GEI("_Elm_DIV_KUJI"));
+
+	const _Ary_KUJIEntry=[];
+
+	for(const __Elm_Kuchi of _Col_Kuchi){
+
+		const __Elm_VLToR=$GEC("vertical-left-to-right",__Elm_Kuchi)[0];
+		const __Col_chk=__Elm_VLToR.getElementsByTagName("input");
+		const __Ary_KUJINums=[];
+
+		for(const ___Elm_chk of __Col_chk){
+			if(___Elm_chk.checked) __Ary_KUJINums.push(___Elm_chk.value);
+		};
+			_Ary_KUJIEntry.push(__Ary_KUJINums);
+		};
+//$log("シートからの読み取り配列：",_Ary_KUJIEntry)		
+	return _Ary_KUJIEntry;
+}
+
+	//当選を調べる
+	function Fn_ReArray_SearchAtari(Ary_Atari,Ary_EntrySheet){
+/*
+	Ary_Atari：抽出数字格納配列：[ [...主数字],[...副数字] ]：アプリ側の抽出した本番数字
+
+	Ary_EntrySheet：エントリーシートから読みだしたユーザー予想の数字を格納した配列：[ [...A],[...B],[...C],[...D],[...E] ]
+
+	Ary_Tekichu：ユーザーの予想数字を的中判定で３種に仕訳して格納する配列：[ ...KUCHI ]：KUCHI：[ [...主] , [...副] , [...外れ] ]
+
+*/
+		const Ary_Tekichu=[ [  [],[],[]  ] , [  [],[],[] ] , [ [],[],[] ]  , [ [],[],[] ] , [ [],[],[] ] ];
+
+		for(const [ _i_ABCDE , _Ary_ABCDE ] of Ary_EntrySheet.entries()){
+			
+			for( const [ __i_EntNum , __n_EntNum ]  of _Ary_ABCDE.entries()){
+				
+				//Ary_Atari[0]：今回抽出の主数字の要素配列
+				//Ary_Atari[1]：今回抽出の副数字の要素配列
+				
+				if(Ary_Atari[0].includes(__n_EntNum)){
+					Ary_Tekichu[_i_ABCDE][0].push(__n_EntNum);//主数字の的中数字専用の配列要素に仕訳
+				}else if(Ary_Atari[1].includes(__n_EntNum)){
+					Ary_Tekichu[_i_ABCDE][1].push(__n_EntNum);//副数字の的中数字に
+				}else{
+					Ary_Tekichu[_i_ABCDE][2].push(__n_EntNum);//外れ数字に
+				}
+				
+			}
+		}
+
+//$log("的中と外れ数字の仕訳：",Ary_Tekichu);
+		return Ary_Tekichu;
+	}
+
+//当たりクラスを判定
+//_AryPassNums: [ ...KUCHI ]：KUCHI：[ [...主] , [...副] , [...外れ] ]
+function Fn_ReArry_TallyLevel(_AryPassNums,_nKUJI){
+
+	const  Elm_TA_DispB=$GEI("_Elm_TA_DispB");
+
+	let _Ary_Temp_TekichuLevel=[];//今回のチケット上の５口の的中レベルをカウントする配列
+	
+	Elm_TA_DispB.value+=`${$MyGlobal.Counter}回${$MyGlobal.GetAtariNumbersString()}\r\n`;
+	Elm_TA_DispB.scrollTop = Elm_TA_DispB.scrollHeight;
+	
+	//選ぶ個数の設定値でくじの種類を判定している
+	switch(_nKUJI){
+	
+		case 6:{//くじ43-6-1のルールで判定
+			
+			_Ary_Temp_TekichuLevel=Array(6);//配列のインデックスは当選等級と一致
+		
+			for( const ___Ary_MainSub of _AryPassNums ){
+
+				let  ___nLevel=0;//照合前の的中レベル変数の初期値
+				const ___nMain=___Ary_MainSub[0].length;//的中本数字の数
+				const ___nSub=___Ary_MainSub[1].length;//的中副数字の数
+
+				//エントリーない口は除いてカウントしない				
+				if(___nMain || ___nSub || ___Ary_MainSub[2].length){
+				
+					switch(true){
+					
+						case (___nMain>=6):{
+							___nLevel=1;//全的中:レベル1
+							break;
+						}
+						case (___nMain===5):{
+							if(___nSub>0){
+							___nLevel=2;//主数字5個+副数字１個以上:レベル2
+							}else{
+							___nLevel=3;//主数字5個:レベル3
+							}
+							break;
+						}
+						case(___nMain===4):{
+							___nLevel=4;//主数字4個:レベル4
+							break;				
+						}
+						case(___nMain===3):{
+							___nLevel=5;//主数字3個:レベル5
+							break;						
+						}
+					}
+					if(___nLevel){
+						Elm_TA_DispB.value+=`的中レベル${___nLevel}:主数字:${___Ary_MainSub[0].join("-")} ${(___nLevel===2)?`副数字:${ ___Ary_MainSub[1].map(_e=>`(${_e})`).join("") }`:""}\r\n`;
+						Elm_TA_DispB.scrollTop = Elm_TA_DispB.scrollHeight;
+					}
+					_Ary_Temp_TekichuLevel[___nLevel]=(_Ary_Temp_TekichuLevel[___nLevel] ?? 0)+1;//的中レベルをレベルと同値のインデックスの配列要素にカウントする。的中レベル0もカウントする
+				}
+			}
+			break;		
+		}
+		//くじ37-7-2を想定
+		case 7:{
+
+			_Ary_Temp_TekichuLevel=Array(7);
+
+			for( const ___Ary_MainSub of _AryPassNums ){
+
+				let  ___nLevel=0;//照合前の的中レベル変数の初期値
+				const ___nMain=___Ary_MainSub[0].length;//的中本数字の数
+				const ___nSub=___Ary_MainSub[1].length;//的中副数字の数
+				
+				//エントリーない口は除いてカウントしない				
+				if(___nMain || ___nSub || ___Ary_MainSub[2].length){
+			
+					switch(true){
+						case (___nMain>=7):{
+							___nLevel=1;//全的中:レベル1
+							break;
+						}
+						case (___nMain===6):{
+							if(___nSub>0){
+								___nLevel=2;//主数字6個+副数字１個以上:レベル2
+							}else{
+								___nLevel=3;//主数字6個:レベル3
+							}
+							break;
+						}
+						case(___nMain===5):{
+							___nLevel=4;//主数字5個:レベル4
+							break;				
+						}
+						case(___nMain===4):{
+							___nLevel=5;//主数字4個:レベル5
+							break;
+						}
+						case(___nMain===3 && ___nSub>0):{
+							___nLevel=6;//主数字3個+副数字1以上:レベル6
+							break;
+						}
+					}
+					if(___nLevel){
+						Elm_TA_DispB.value+=`的中レベル${___nLevel}:主数字:${___Ary_MainSub[0].join("-")} ${(___nLevel===2 || ___nLevel===6 )?`副数字:${ ___Ary_MainSub[1].map(_e=>`(${_e})`).join("") }`:""}\r\n`;
+						Elm_TA_DispB.scrollTop = Elm_TA_DispB.scrollHeight;
+					}
+					_Ary_Temp_TekichuLevel[___nLevel]=(_Ary_Temp_TekichuLevel[___nLevel] ?? 0)+1;//的中レベルをレベルと同値のインデックスの配列要素にカウントする。的中レベル0もカウントする
+				}
+			}
+			break;
+		}	
+		
+		//くじ31-5-1を想定
+		default:{
+
+			_Ary_Temp_TekichuLevel=Array(5);
+
+			for( const ___Ary_MainSub of _AryPassNums ){
+
+				let  ___nLevel=0;//照合前の的中レベル変数の初期値
+				const ___nMain=___Ary_MainSub[0].length;//的中本数字の数
+				const ___nSub=___Ary_MainSub[1].length;//的中副数字の数
+
+				//エントリーない口は除いてカウントしない				
+				if(___nMain || ___nSub || ___Ary_MainSub[2].length){
+
+					switch(true){
+						case (___nMain>=5):{
+							___nLevel=1;//全的中:レベル1
+							break;
+						}
+						case (___nMain===4):{
+							if(___nSub>0){
+								___nLevel=2;//主数字5個+副数字１個以上:レベル2
+							}else{
+								___nLevel=3;//主数字5個:レベル3
+							}
+							break;
+						}
+						case(___nMain===3):{
+							___nLevel=4;//主数字5個:レベル4
+							break;				
+						}
+					}
+					if(___nLevel){
+						Elm_TA_DispB.value+=`的中レベル${___nLevel}:主数字:${___Ary_MainSub[0].join("-")} ${(___nLevel===2 )?`副数字:${ ___Ary_MainSub[1].map(_e=>`(${_e})`).join("") }`:""}\r\n`;
+						Elm_TA_DispB.scrollTop = Elm_TA_DispB.scrollHeight;
+					}
+					_Ary_Temp_TekichuLevel[___nLevel]=(_Ary_Temp_TekichuLevel[___nLevel] ?? 0)+1;//的中レベルをレベルと同値のインデックスの配列要素にカウントする。的中レベル0もカウントする
+				}
+			}
+		}
+	}
+	return _Ary_Temp_TekichuLevel;//的中レベルと同値のインデックスにある要素に的中総数を格納した配列:_Ary_Temp_TekichuLevel[1]はレベル1が何口あったか総数が格納されている
+}
+
+//くじ新規作成セレクタが選ばれた処理
+function Fn_Elm_SEL_BuildNewKUJI_onclicked(_ev,_index){
+
+	const Elm_this=(_ev instanceof Event)?this:$GEI("_Elm_SEL_BuildNewKUJI");
+	const _i=(_index>0)?_index:Elm_this.selectedIndex;//この関数が第２引数で呼ばれたのは手動の指定値
+	Elm_this.selectedIndex=0;	
+	if(_i>0){		
+
+		const [_K,_n,_bn]=$parse(Elm_this.options[_i].value);
+		
+		if(!_index){
+			if(!confirm(`${_K}から\r\n${_n}個選ぶ、くじを新規作成します。\r\n(副数字${_bn}個)`)){return};
+		}	
+		$GEI("_Elm_NUM_Nums").value=$GEI("_Elm_SPAN_KTNums").textContent=_K
+		$GEI("_Elm_NUM_NumsSel").value=$GEI("_Elm_SPAN_KTNumsSel").textContent=_n;
+		$GEI("_Elm_NUM_NumsSub").value=$GEI("_Elm_SPAN_KTNumsSub").textContent=_bn;
+		Fn_BuildSheet( _K);
+		$MyGlobal.ClearMyData();
+		Fn_BuildTicketFromSheet( Fn_ReArray_KUJIEntry() );
+		
+	}
+}
+$GEI("_Elm_SEL_BuildNewKUJI").onchange=Fn_Elm_SEL_BuildNewKUJI_onclicked;
+
+//配列から、くじチケットの各口へ数字を書き込む関数
+//_ArySheetの配列構造：[ [...A],[...B],[...C],[...D],[...E] ]
+//シート作成時にチケットの形式も決まっているからそこで作成しておくのが理想だが、くじの規定数以上の個数も選べる仕様のため臨機応変の現状のまま。
+function Fn_BuildTicketFromSheet(_ArySheet){
+
+	$MyGlobal.MyTicket=_ArySheet;
+
+	$GEI("_Elm_SPAN_KTNums").textContent=$MyGlobal.KUJINumbers=$GEI("_Elm_NUM_Nums").value=$GEC("num", $GEC("vertical-left-to-right",$GEI("_Elm_DIV_KUJI") )[0] ).length
+	$GEI("_Elm_SPAN_KTNumsSel").textContent=$MyGlobal.KUJINumbersSelected=$SEISU( $GEI("_Elm_NUM_NumsSel").value );
+	$GEI("_Elm_SPAN_KTNumsSub").textContent=$MyGlobal.KUJINumbersSub=$SEISU( $GEI("_Elm_NUM_NumsSub").value )
+	
+	const _Elm_DIV_DispKTNums=$GEI("_Elm_DIV_DispKTNums");
+	$ClearAllChildren(_Elm_DIV_DispKTNums);//要素内を全てクリア
+
+	for( const [__i,__AryKNums ] of _ArySheet.entries() ){
+
+			const __Elm_CLASS_Entry=$CE("div");
+			__Elm_CLASS_Entry.className="_CLASS_Entry";
+
+			__AryKNums.forEach( (___e,___i2)=>{
+
+				const ___Elm_SPAN=$CE("span");
+				___Elm_SPAN.textContent=String(___e).padStart(2,"0");
+
+				if(___i2===0){
+					__Elm_CLASS_Entry.append( ___Elm_SPAN );
+				}else{
+					__Elm_CLASS_Entry.append( " " , ___Elm_SPAN );
+				}
+			} );
+
+		_Elm_DIV_DispKTNums.append(__Elm_CLASS_Entry);
+
+	}
+
+}
+
+//くじテスト稼働中停止の表示を切り替える
+//_Bool:true:実行中の状態,false:停止中の状態
+function Fn_WhetherTestKUJI(_Bool){
+	const Elm_BTN_Start=$GEI("_Elm_BTN_Start");
+	const Elm_DIV_EntrySheet=$GEI("_Elm_DIV_EntrySheet");
+	const Elm_DIV_InDETAILS=$GEI("_Elm_DIV_InDETAILS");
+
+	if(_Bool){
+		Elm_BTN_Start.textContent="停止";
+		Elm_DIV_EntrySheet.inert=Elm_DIV_InDETAILS.inert=true;
+
+ 	}else{
+		Elm_BTN_Start.textContent="実行";
+		Elm_DIV_EntrySheet.inert=Elm_DIV_InDETAILS.inert=false;
+ 	}
+
+}
+
+//スタート(実行)ボタンが押された処理
+$GEI("_Elm_BTN_Start").onclick=function(){
+
+	if($MyGlobal.TimerID){
+		if( !confirm("くじテストを停止します。") ){return};
+
+		//抽選を強制終了
+		clearTimeout($MyGlobal.TimerID);
+		$MyGlobal.TimerID=null;//0は不適
+		Fn_WhetherTestKUJI(false);
+		
+		//ここまでの抽選結果の処理をする
+		
+
+
+	}else{
+		//抽選スタート
+		Fn_WhetherTestKUJI(true);
+		$MyGlobal.Counter=($MyGlobal.Counter ?? 0);
+		$MyGlobal.KUJINumbers=$SEISU( $GEI("_Elm_NUM_Nums").value );
+		$MyGlobal.KUJINumbersSelected=$SEISU( $GEI("_Elm_NUM_NumsSel").value );
+		$MyGlobal.KUJINumbersSub=$SEISU( $GEI("_Elm_NUM_NumsSub").value );
+
+		$MyGlobal.TimerID=setInterval( function(){			
+			
+			$MyGlobal.Counter++//抽選回数カウント+1
+			const { Counter:_Counter , KUJINumbers: _KUJINumbers , KUJINumbersSelected:_KUJINumbersSelected , KUJINumbersSub:_KUJINumbersSub , MyTicket:_MyTicket }=$MyGlobal;
+
+			//この回の正解を作成:配列構造：[ [...主数字] , [...副数字] ]	
+			const __ArySeikai=(false)?[ ["01","02","03","04","05","06","07"],["42","43"] ]:Fn_GetRandamElement2( _KUJINumbers , _KUJINumbersSelected , _KUJINumbersSub ,10,0);
+			$MyGlobal.Atari=__ArySeikai;
+			//当選を調べる
+			const __ArySearchAtari=Fn_ReArray_SearchAtari(__ArySeikai,Fn_ReArray_KUJIEntry());
+
+			//的中レベルを集計する
+			const __AryTallyLevel=Fn_ReArry_TallyLevel( __ArySearchAtari , _KUJINumbersSelected );
+
+$MyGlobal.AddMyData(__AryTallyLevel);
+			
+			$GEI("_Elm_TA_DispA").value=`実行${_Counter}回\r\n${$MyGlobal.GetMyDataByText()}`;
+
+			if( $MyGlobal.Counter>0 ){//無限回数設定でも現実の上限を設け停止する
+				clearTimeout($MyGlobal.TimerID);
+				$MyGlobal.TimerID=null;
+				Fn_WhetherTestKUJI(false);
+			}
+
+		},0 );
+
+	}
+}
+
+$GEI("_Elm_Btn_ResetCt").onclick=()=>{
+	if( confirm(`現在の統計データ\r\n実行${$MyGlobal.Counter}回\r\n${$MyGlobal.GetMyDataByText()}\r\nをリセットします。`) ){
+		$MyGlobal.Counter=0;
+		$MyGlobal.ClearMyData();
+	}
+}
+$GEI("_Elm_BTN_ClearLog").onclick=()=>{
+	if( confirm("ログを全て消します。") ){
+		$GEI("_Elm_TA_DispB").value="";
+	}
+}
+$GEI("_Elm_BTN_DispRule").onclick=function(_ev){
+
+	let KUJIKind=$SEISU( $GEI("_Elm_SPAN_KTNumsSel").textContent );
+	this.popoverTargetElement=$GEC("CSS_PUp_KUJIRule",$GEI("_Elm_DIV_InDETAILS"))[(KUJIKind===5 || KUJIKind===6 || KUJIKind===7 )?KUJIKind-4:0]; 
+
+} 
+
+//43-6-1のくじを初期作成
+Fn_Elm_SEL_BuildNewKUJI_onclicked(null,2);
+//チケットの初期作成
+//Fn_ReArray_KUJIEntry()：シートの各口で数字のある口だけを要素にした配列：[ ...[...A] ]：全く無ければ空配列～要素数5まで
+Fn_BuildTicketFromSheet( Fn_ReArray_KUJIEntry() );
+
+//デバッグ用
+//test_RPick();
+
+};// ← ← ← ← ← window.onload(){内}ここまで ↑ ↑ ↑ ↑ ↑
+/*
+
+スクリプトグローバルエリア
+
+*/
+</script>
+</head>
+<body>
+<main>
+
+	<details open><summary>エントリーシート</summary>
+		<div id="_Elm_DIV_EntrySheet">
+
+		<div><select id="_Elm_SEL_BuildNewKUJI">
+			<option value="[0,0,0]" selected>くじ種類別エントリーシートを新規作成</option>
+			<option value="[31,5,1]">くじ31-5-1にする</option>
+			<option value="[43,6,1]">くじ43-6-1にする</option>
+			<option value="[37,7,2]">くじ37-7-2にする</option>
+		</select></div>
+		<div id="_Elm_DIV_KUJI"></div>
+
+		</div>
+
+	</details>
+
+	<details id="_Elm_DTLS_Ticket" open><summary>チケット</summary>
+		
+		<div id="_Elm_DIV_InDETAILS">
+
+			<div id="_PUp_KUJIRule0" popover="hint" class="CSS_PUp_KUJIRule">不具合発生</div>
+			
+			<div id="_PUp_KUJIRule5" popover="hint" class="CSS_PUp_KUJIRule">
+			<div class="CSS_CenterTitle">くじ31-5-1</div>			
+			的中レベル１：主数字５個すべて的中<br>
+			的中レベル２：主数字４個と副数字１個が的中<br>
+			的中レベル３：主数字４個が的中<br>
+			的中レベル４：主数字３個が的中
+			</div>
+
+			<div id="_PUp_KUJIRule6" popover="hint" class="CSS_PUp_KUJIRule">
+			<div class="CSS_CenterTitle">くじ43-6-1</div>			
+			的中レベル１：主数字６個すべて的中<br>
+			的中レベル２：主数字５個と副数字１個が的中<br>
+			的中レベル３：主数字５個が的中<br>
+			的中レベル４：主数字４個が的中<br>
+			的中レベル５：主数字３個が的中
+			</div>
+
+			<div id="_PUp_KUJIRule7" popover="hint" class="CSS_PUp_KUJIRule">
+			<div class="CSS_CenterTitle">くじ37-7-2</div>
+			的中レベル１：７個の主数字すべて的中<br>
+			的中レベル２：６個の主数字と副数字２個のうち１個以上的中<br>
+			的中レベル３：６個の主数字と的中<br>
+			的中レベル４：５個の主数字と的中<br>
+			的中レベル５：４個の主数字と的中<br>
+			的中レベル６：３個の主数字と副数字２個のうち１個以上的中			
+			</div>
+
+			<div id="_Elm_DIV_Ticket">
+				<label id="_Elm_LBL_DispRule"><button id="_Elm_BTN_DispRule" popovertarget="_PUp_KUJIRule0" style="display: none;"></button>
+					<div id="_Elm_DIV_KTTitle">くじ<span id="_Elm_SPAN_KTNums">43</span>-<span id="_Elm_SPAN_KTNumsSel"></span>-<span id="_Elm_SPAN_KTNumsSub"></span></div>
+				</label>
+				<div id="_Elm_DIV_DispKTNums">
+					<div class="_CLASS_Entry">01 02 03 04 05 06</div>
+					<div class="_CLASS_Entry">07 08 09 10 11 12</div>
+					<div class="_CLASS_Entry">13 14 15 16 17 18</div>
+					<div class="_CLASS_Entry">19 20 21 22 23 24</div>
+					<div class="_CLASS_Entry">25 26 27 28 29 30</div>
+				</div>				
+			</div>
+			
+		</div>
+
+	</details>
+
+	<div>
+		<button id="_Elm_Btn_ResetCt">カウンターリセット</button> <button id="_Elm_BTN_ClearLog">ログクリア</button> <button id="_Elm_BTN_Start">実行</button>
+	</div>
+
+	<div>
+		<label><textarea id="_Elm_TA_DispB" class="_CSS_TA_Disp" placeholder="的中データ表示部 B"></textarea></label>
+	</div>
+	<div>
+		<label><textarea id="_Elm_TA_DispA" class="_CSS_TA_Disp" readonly placeholder="的中データ表示部 A"></textarea></label>
+	</div>
+	
+	<details id="_Elm_DTLS_Setting">
+		<summary>設定</summary>
+		
+		<div><label><input type="checkbox" checked id="_Elm_CB_SetRPick">ランダムピック動作： ON:全て選び直す / OFF:不足分のみ選ぶ </label></div>
+		<div><label><input type="checkbox" checked id="_Elm_CB_RPickDifferently">ランダムピックで他の口にある数字は選ばない</label></div>
+		<input type="number" id="_Elm_NUM_Nums" value="43" max="43" min="1" style="display:none;">
+		<input type="number" id="_Elm_NUM_NumsSel" value="6" max="7" min="5" style="display:none;">
+		<input type="number" id="_Elm_NUM_NumsSub" value="1" max="2" min="1" style="display:none;">
+
+		<div><select id="_Elm_SEL_Kaisu" disabled>
+			<option value="1" selected>1回</option>
+			<option value="4">4回</option>
+			<option value="8">8回</option>
+			<option value="12">12回</option>
+			<option value="48">48回</option>
+			<option value="0" title="実際には1万回で停止します">無制限</option>
+		</select></div>
+		<div><select id="_Elm_SEL_Teishi" disabled>
+			<option value="0" selected>全数字的中で停止</option>
+			<option value="3">3個以上的中で停止</option>
+			<option value="4">4個以上的中で停止</option>
+			<option value="100">的中停止なし</option>
+		</select></div>
+
+		</div>
+
+	</details>
+</main>
+			
+
+<details><summary>【取り扱い説明書】</summary>
+<div><pre>
+バージョン 0.1.5β 開発途上公開版
+※βの付いたバージョンは正式版ではなく開発途上のものを表します。
+とりあえず動くようになった暫定的な公開用です。
+できるだけチェックしていますが、不具合もあるかも知れません。ご了承下さい。
+
+
+【動作環境】
+Google Chrome 122 (2024-02-20) 以降
+
+※この[0.1.5β]から、Google Chrome 122以降でしか動作しませんが、
+Chromeであれば、要望が多くあれば、もっと低いバージョンでも動くように対処することもあります。
+特にAndroid版ではAndroid自体のバージョンアップサイクルが速いので
+バージョンアップできないAndroidではアプリも最新版までバージョンアップできないからです。
+
+
+【このアプリについて】
+
+異なる複数の数字の中から決められた個数の数字を選ぶ形式のくじをシュミレーションします。
+
+たとえば1～43の数字の中から6個の数字を選ぶというものです。
+それをユーザーが6個の数字の組み合わせ予想してアプリ側の抽出数字に的中させるのが基本です。
+的中の程度には全一致からから全く一致しないまでありますが、一定以上の条件の的中には的中レベルという評価がもえらます。
+当然ですが、ユーザーが選んだ6個すべての数字がアプリの選んだ数字と的中するのが最も的中レベルが高いレベル1とします。
+このアプリで扱う種類のくじには、選ぶ6個の数字以外に加えて、アプリ側が、もう1個だけ、おまけ的に数字を選ぶ、というルールも付加されています。
+これを区別して本来の6個に選ばれた数字を「主数字」、おまけの1個を「副数字」と呼びます。
+この43個の数字から本数字6個を選ぶくじの的中レベルは以下のようになっています。
+
+・「くじ43-6-1」のルール
+的中レベル1：主数字6個すべて的中
+的中レベル2：主数字5個と副数字1個が的中
+的中レベル3：主数字5個が的中
+的中レベル4：主数字4個が的中
+的中レベル5：主数字3個が的中
+
+このアプリでは、このようなくじの種類の1つを形式から「くじ43-6-1」と呼ぶことにしています。
+数字はルール形式を表しています。
+この例では1～43の43個の数字の中から6個選ばれるとわかります。
+最後の1は的中レベル2で使われているように、5個まで的中できたが、あと1個が外れた場合の救済的な補助的な数字です。
+早い話おまけの数字ですね。レベル2になるためにだけ1個だけおまけがありますよと言うことです。
+「全部で2個や1個だけの的中は？」残念ながら、このくじのルールでは的中レベル評価外としますので、
+全く的中ナシのゼロ個と同じ、「外れ」の評価になります。
+
+このように的中レベルはくじに寄って決まったルールで的中レベルを判定します。先にも述べたように的中レベル1が最も良いわけです。
+的中レベルの上位に当たるにはどの程度の難しさなのかをシュミレーションするのが本アプリの目的です。
+現在、使用できる、くじの種類は以下の3種です。
+
+・「くじ43-6-1」※先に説明しましたので、ここでは省略します。
+
+・「くじ31-5-1」
+的中レベル1：主数字5個すべて的中
+的中レベル2：主数字4個と副数字1個が的中
+的中レベル3：主数字4個が的中
+的中レベル4：主数字3個が的中
+
+・「くじ37-7-2」
+的中レベル1：7個の主数字すべて的中
+的中レベル2：6個の主数字と副数字2個のうち1個以上的中
+的中レベル3：6個の主数字と的中
+的中レベル4：5個の主数字と的中
+的中レベル5：4個の主数字と的中
+的中レベル6：3個の主数字と副数字2個のうち1個以上的中
+
+※的中レベルの評価は1から順に的中条件に当てはまる最上位のレベル1つだけになります。
+たとえば、最上位レベルから条件に当てはめて、的中レベル3に的中すれば的中レベル4以下の的中は考慮しません。
+※的中レベルの条件に全く当てはまらないものは、すべて「外れ」の評価になります。
+
+※このアプリでの独自定義の用語
+【抽出】：数字を選び出すことを指します。基本的にユーザーには使わず、アプリ側が選ぶことを指します。
+【的中】：アプリ抽選数字とユーザーの選んだ数字の全部または一部でも一致することを指します。
+【的中レベル】：「的中レベル」とは「的中の程度が高く、賞がもらえるような評価レベル」と言う意味合いです。「的中レベル」に相当するには、「一定以上の的中」が条件で、条件はくじの種類ごとに異なります。
+【外れ】：的中レベルの条件のどれにも当てはまらない場合は、当然「的中レベル」ではないので、すべて「外れ」の扱いになります。
+【主数字】：くじ抽選のメインの目的の数字です。これを全て的中させることが、くじの目的であり、面白さであります。
+【副数字】：主数字に加えて抽出されて、主数字と組み合わせて補助的に使われる数字です。主に的中レベル２の条件に使われます。
+【口(くち)】：エントリーシートのABCDE覧で最大5通りの予想のチケットを作成しますが、A覧などの1つの予想を1口として数えます。「～通り」と「～口(くち)」を区別しているのは全く同じ数字の組み合わせでも1口と数えるからです。
+
+
+【操作方法】
+
+【1】くじの種類に従い数字を予想します。※起動直後のくじは「くじ43-6-1」に設定されています。
+
+・エントリーシートにはA,B,C,D,Eと、5口の予想が申し込めます。
+必ずしも5口予想する必要はなく、B覧とE覧だけのように2口の予想でも構いません。
+
+・予想する数字をクリックすると鉛筆でチェックしたように縦線でチェックされます。取り消すにはもう1度クリックします。
+※このアプリでは、あえて1口あたりの選べる予想数字の個数の制限はしない仕様にしています。個数制限なくチェックして予想数字にできます。
+よって、ABCDE覧の1つの覧内で予想数字1個でもチェックすると一口として扱われます。また、まったく1個もチェックしない覧は一口にはなりません。
+
+・ABCDE各欄にある[ランダムピック]ボタンを使うとアプリが数字を選んでくれます。
+
+・[設定]覧にある[ランダムピック動作]のチェックで動作が変ります。
+ON:アプリがその一口の規定個数分の数字をすべて新しく選び直します。
+OFF:規定数に足りない場合だけ、今のチェック状態はそのままで不足の個数分だけアプリが選びます。
+　※既に規定数以上チェックがある場合はそれ以上選択しません。
+
+・[ランダムピックで他の口にある数字は選ばない]チェックボタンでは、
+ON:[ランダムピック]ボタンを押した時点で他の口で選ばれている数字はランダムピックで選びません。
+OFF:他の口の数字は一切考慮しません。
+
+・[クリア]ボタンを使うと、その一口分のチェック状態をすべてオフにリセットします。
+
+
+【2】エントリーシートの選択数字はチケットに反映されます。
+
+・チケットにはエントリーシートのABCDEの各欄の1口ごとに選んだ数字だけが横並びで表示されます。
+またチケット上部にはくじの形式が表示されます。
+たとえば「くじ43-6-1」と表示されていれば、的中レベルはこの形式ごとの、くじのルールの条件で評価します。
+この部分をクリックすると、的中レベルの条件が表示され確認できます。
+
+【3】他のルールのくじに変えることもできます。
+
+・【くじ種類別エントリーシートを新規作成】セレクタで選ぶことができます。
+※作成確認で[OK]を押すと、現在のエントリーシートの数字選択状態とチケットの内容、さらに、これまでの的中レベル統計データは消去されます。
+
+【4】チケットができたら、くじを実行します。
+
+・【実行】ボタンを押すだけです。
+アプリが主数字と副数字を選びます。これは表示欄Bにログが表示されます。
+ただちにチケットにあるユーザーの選んだ数字の組み合わせと照合してくれます。
+自動でチケットに書かれた各口ごとに的中レベルを判定しますので、
+表示欄Aには的中レベルが何口あったか、過去の実行の回に加えて統計されます。
+表示欄Bにもチケットにある予想数字のうちで具体的にどの数字が的中し、的中レベルを取得したかがログ表示され、わかります。
+
+※1個だけ選んでいる一口でも、予想の一口とみなされますので、
+たとえ1個が主数字の1つに的中しても的中レベル条件に当てはまらないのなら
+当然に外れ口数にカウントされますので注意してください。※現在のくじの、どの種類でも2個以下の的中数では的中レベルはありません。
+
+
+
+【ご注意】開発中のアプリです。まだ完成品ではありません。
+※表示されていても、まだ機能が実装されていないものもあります。
+</pre></div>
+</details>
+<details><summary>バージョン履歴</summary>
+<pre>
+[0.1.5β]
+【動作環境】
+Google Chrome 122 (2024-02-20) 以降になります。
+【新機能】
+・ランダムピックに他の口の数字と重複しない数字だけを選ぶ設定を付けました。
+
+
+[0.1.4β]
+【変更】
+・的中レベルに的中した場合のログに、副数字の的中を表示するのはその的中レベルで使用する場合だけにしました。
+【修正】
+・プログラムコードを効率化・高速化のために修正しました。
+【新機能】
+・現在のくじの的中レベル条件の確認機能を付けました。チケットのくじ形式表示部分をクリックします。
+
+[0.1.3β]
+【変更】
+・[カウンターリセット]ボタンで統計値全てを初期状態にリセットする仕様にしました。
+【新機能】
+・エントリーシート上に[ランダムピック]ボタンを追加しました。アプリが数字を選んでくれます。
+・[設定]覧にランダムピックの動作設定を付けました。
+・エントリーシート上に[クリア]ボタンを追加しました。一口分のすべてのチェック状態をオフにリセットします。
+【修正】
+・内部のコードをより見直し、細かい不具合を修正しました。この最新版を使用して下さい。
+
+[0.1.2β]
+【変更】
+・主に表示レイアウトの細かい調整を行いました。
+　※表示に関しては今後も随時、変更の可能性があります。
+
+[0.1.1β]
+・開発途上版として初公開バージョン
+　※開発しながらの公開のために【取り扱い説明書】に記述のないものは機能が実装がされていません。
+</pre>
+</details>
+
+</body>
+</html>
