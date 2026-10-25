@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カラーボールシャッフル 試作版 00.01</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0px;
+			overflow: hidden;
+    }
+
+    .TITLE1 {
+      color: #2c3e50;
+      font-size: 18px;
+			font-weight: bold;
+			margin: 0;
+    }
+
+  .SETUMEI {
+      color: #7f8c8d;
+      text-align:left;
+			font-size: 16px;
+    }
+
+    .shuffle-btn {
+      background-color: #2ecc71;
+      color: white;
+      border: none;
+      padding: 0px 20px;
+      font-size: 16px;
+			font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .shuffle-btn:hover {
+      background-color: #27ae60;
+    }
+
+    .shuffle-btn:active {
+      transform: scale(0.95);
+    }
+
+    .shuffle-btn:disabled {
+      background-color: #bdc3c7;
+      cursor: not-allowed;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+			grid-auto-rows: max-content;
+      gap: 4px;
+      width: 100%;
+      max-width: 480px;
+      background: white;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+			margin: 12px;
+    }
+
+    .grid-container span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #3498db;
+      color: white;
+      aspect-ratio: 1;
+      font-weight: bold;
+      font-size: 1.2rem;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+
+  border-radius: 50%; /* 正方形を完全な円にする */
+	/* 左上（30% 30%の位置）に光の当たりを設定し、立体感を出す
+	background: radial-gradient(circle at 30% 30%, #ff6b6b, #c92a2a 50%, #5c0b0b 100%);
+	*/
+	/* 必要に応じて影をつけるとさらに立体的になります */
+	box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+
+}
+
+    .grid-container span:hover {
+      background-color: #2980b9;
+    }
+
+    .grid-container span.selected {
+      background-color: #e67e22;
+      box-shadow: 0 0 0 3px #f39c12;
+    }
+
+    .grid-container span.moving {
+      z-index: 99;
+      box-shadow: 0 25px 40px rgba(0,0,0,0.35);
+    }
+
+        /* 文字色の個別調整（黄色や薄いピンクは見えにくいため黒文字にする） */
+        .ball.color-2, .ball.color-3, .ball.color-0 {
+            color: #222222;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        /* 
+          CSSの「内側放射状グラデーション（radial-gradient）」を使い、
+          左上に光が当たっているような立体感を表現します。
+        */
+        /* 1色目: #d6151a (赤) */
+        .color-1 { background: radial-gradient(circle at 30% 30%, #ff5257, #d6151a 60%, #8a0004); }
+        /* 2色目: #fdaa2a (オレンジ) */
+        .color-2 { background: radial-gradient(circle at 30% 30%, #ffcf76, #fdaa2a 60%, #b36b00); }
+        /* 3色目: #f9f95d (黄) */
+        .color-3 { background: radial-gradient(circle at 30% 30%, #ffffb0, #f9f95d 60%, #b0b010); }
+        /* 4色目: #5bce3b (緑) */
+        .color-4 { background: radial-gradient(circle at 30% 30%, #8eff6e, #5bce3b 60%, #29850c); }
+        /* 5色目: #1ba5fe (青) */
+        .color-5 { background: radial-gradient(circle at 30% 30%, #7cd0ff, #1ba5fe 60%, #0060b3); }
+        /* 6色目: #683987 (紫) */
+        .color-6 { background: radial-gradient(circle at 30% 30%, #b47ae6, #683987 60%, #391154); }
+        /* 7色目: #ffa1d1 (ピンク) */
+        .color-0 { background: radial-gradient(circle at 30% 30%, #ffdbf0, #ffa1d1 60%, #c75691); }
+
+
+  </style>
+  <style id="dynamic-animation"></style>
+
+  <script>
+window.onload=()=>{
+//組み込み関数の短縮参照
+const {log:$log}=console;
+const {trunc:$trunc,sign:$sign,sin:$sin,cos:$cos,round:$round,ceil:$ceil,random:$rnd,floor:$floor,PI:_PI}=Math;
+const {assign:$assign}=Object;
+const {isNaN:$isNaN}=Number;
+const {isArray:$isArray}=Array;
+const {parse:$parse}=JSON;
+const {NumberFormat:$FormatN}=Intl;
+	
+//DOMモデル短縮参照
+const {confirm:$confirm,document:$doc}=window;
+const $GEI = _id => $doc.getElementById(_id);
+const $CE = _tag => $doc.createElement(_tag);
+const $CDF = () => $doc.createDocumentFragment();
+	
+//カスタム関数
+//値を整数変換して返す。数値化できない場合0を返す
+const $SEISU=(_v)=>{ return $trunc(Number(_v ?? 0)) };
+//子要素を全て削除する
+function Fn_ClearAllChildren(_Elm){
+	if(_Elm.replaceChildren){
+		_Elm.replaceChildren();
+	}else if(_Elm.parentNode.replaceChild){
+		_Elm.parentNode.replaceChild(_Elm.cloneNode(false),_Elm);
+	}else{
+		_Elm.innerHTML="";
+	}	
+}
+
+
+
+    const grid = document.getElementById('grid');
+    const dynamicStyle = document.getElementById('dynamic-animation');
+    const shuffleBtn = document.getElementById('shuffle-trigger');
+    let firstSelected = null;
+    let isAnimating = false;
+
+function KUJI(_MaxSuuji){
+
+	_MaxSuuji=Number(_MaxSuuji);
+	const MaxSuuji=($isNaN(_MaxSuuji) && 43) || ( (_MaxSuuji<3) && 3) || ( (_MaxSuuji>99) && 43) || _MaxSuuji;
+
+
+
+
+}
+
+    // 1〜43の要素を生成
+    for (let i = 1; i <= 43; i++) {
+      const span = document.createElement('span');
+      span.textContent = i;
+			span.className=`ball color-${i % 7}`;
+      span.addEventListener('click', handleSelect);
+      grid.appendChild(span);
+    }
+
+    shuffleBtn.addEventListener('click', startShuffleAnimation);
+
+    function handleSelect(e) {
+      if (isAnimating) return;
+      
+      const clickedSpan = e.currentTarget;
+
+      if (!firstSelected) {
+        firstSelected = clickedSpan;
+        firstSelected.classList.add('selected');
+        return;
+      }
+
+      if (firstSelected === clickedSpan) {
+        firstSelected.classList.remove('selected');
+        firstSelected = null;
+        return;
+      }
+
+      const secondSelected = clickedSpan;
+      firstSelected.classList.remove('selected');
+      
+      swapElementsPerfectCircle(firstSelected, secondSelected);
+      firstSelected = null;
+    }
+
+    // 手動で2つの要素を半円周移動させる関数
+    function swapElementsPerfectCircle(el1, el2) {
+      isAnimating=true;
+      shuffleBtn.disabled=true;
+
+      const rect1 = el1.getBoundingClientRect();
+      const rect2 = el2.getBoundingClientRect();
+
+      const dx = rect2.left - rect1.left;
+      const dy = rect2.top - rect1.top;
+      const distance = Math.hypot(dx, dy);
+      const baseAngle = Math.atan2(dy, dx);
+      const radius = distance / 2;
+
+      let kf1 = '';
+      let kf2 = '';
+
+      for (let p = 0; p <= 100; p += 10) {
+        const ratio = p / 100;
+        const angle1 = baseAngle + Math.PI + (Math.PI * ratio);
+        const angle2 = baseAngle + (Math.PI * ratio);
+
+        const x1 = (dx / 2) + Math.cos(angle1) * radius;
+        const y1 = (dy / 2) + Math.sin(angle1) * radius;
+        const x2 = (-dx / 2) + Math.cos(angle2) * radius;
+        const y2 = (-dy / 2) + Math.sin(angle2) * radius;
+
+        const scale = 1 + Math.sin(Math.PI * ratio) * 0.3;
+        const spin = 360 * ratio;
+
+        kf1 += `${p}% { transform: translate(${x1}px, ${y1}px) scale(${scale}) rotate(${spin}deg); }\n`;
+        kf2 += `${p}% { transform: translate(${x2}px, ${y2}px) scale(${scale}) rotate(${spin}deg); }\n`;
+      }
+
+      dynamicStyle.innerHTML = `
+        @keyframes manualMove1 { ${kf1} }
+        @keyframes manualMove2 { ${kf2} }
+      `;
+
+      el1.classList.add('moving');
+      el2.classList.add('moving');
+const _wait=480;
+      el1.style.animation = `manualMove1 ${_wait}ms ease-in-out forwards`;
+      el2.style.animation = `manualMove2 ${_wait}ms ease-in-out forwards`;
+
+      setTimeout(() => {
+        el1.style.animation = 'none';
+        el2.style.animation = 'none';
+
+        // 手動の単純入れ替えDOM操作
+        const parent = el1.parentNode;
+        const sibling1 = ( el1.nextSibling === el2 ) ? el1 : el1.nextSibling;
+        el2.replaceWith(el1);
+        parent.insertBefore(el2, sibling1);
+
+        el1.offsetHeight;
+
+        el1.style.animation='';
+        el2.style.animation='';
+        el1.classList.remove('moving');
+        el2.classList.remove('moving');
+
+        isAnimating=false;
+        shuffleBtn.disabled=false;
+      }, _wait);
+    }
+
+// 手動で2つの要素を半円周移動させる関数
+function swapElementsPerfectCircle2(el1, el2) {
+      isAnimating = true;
+      shuffleBtn.disabled = true;
+
+      const rect1 = el1.getBoundingClientRect();
+      const rect2 = el2.getBoundingClientRect();
+
+      const dx = rect2.left - rect1.left;
+      const dy = rect2.top - rect1.top;
+      const distance = Math.hypot(dx, dy);
+      const baseAngle = Math.atan2(dy, dx);
+      const radius = distance / 2;
+
+      let kf1 = '';
+      let kf2 = '';
+
+      for (let p = 0; p <= 100; p += 10) {
+        const ratio = p / 100;
+        const angle1 = baseAngle + Math.PI + (Math.PI * ratio);
+        const angle2 = baseAngle + (Math.PI * ratio);
+
+        const x1 = (dx / 2) + Math.cos(angle1) * radius;
+        const y1 = (dy / 2) + Math.sin(angle1) * radius;
+        const x2 = (-dx / 2) + Math.cos(angle2) * radius;
+        const y2 = (-dy / 2) + Math.sin(angle2) * radius;
+
+        const scale = 1 + Math.sin(Math.PI * ratio) * 0.3;
+        const spin = 360 * ratio;
+
+        kf1 += `${p}% { transform: translate(${x1}px, ${y1}px) scale(${scale}) rotate(${spin}deg); }\n`;
+        kf2 += `${p}% { transform: translate(${x2}px, ${y2}px) scale(${scale}) rotate(${spin}deg); }\n`;
+      }
+
+      dynamicStyle.innerHTML = `
+        @keyframes manualMove1 { ${kf1} }
+        @keyframes manualMove2 { ${kf2} }
+      `;
+
+      el1.classList.add('moving');
+      el2.classList.add('moving');
+const _wait=480;
+      el1.style.animation = `manualMove1 ${_wait}ms ease-in-out forwards`;
+      el2.style.animation = `manualMove2 ${_wait}ms ease-in-out forwards`;
+
+      setTimeout(() => {
+        el1.style.animation = 'none';
+        el2.style.animation = 'none';
+
+        // 手動の単純入れ替えDOM操作
+        const parent = el1.parentNode;
+        const sibling1 = ( el1.nextSibling === el2 ) ? el1 : el1.nextSibling;
+        el2.replaceWith(el1);
+        parent.insertBefore(el2, sibling1);
+
+        el1.offsetHeight;
+
+        el1.style.animation = '';
+        el2.style.animation = '';
+        el1.classList.remove('moving');
+        el2.classList.remove('moving');
+
+        isAnimating = false;
+        shuffleBtn.disabled = false;
+      }, _wait);
+    }
+
+function startShuffleAnimation() {
+  if (isAnimating) return;
+  isAnimating = true;
+  shuffleBtn.disabled = true;
+
+  const children = Array.from(grid.children);
+
+  // 1. 先に「完全にランダムに並び替えた新しい配列」を計算で作る（フィッシャー–イェーツ）
+  const shuffledChildren = [...children];
+  for (let i = shuffledChildren.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledChildren[i], shuffledChildren[j]] = [shuffledChildren[j], shuffledChildren[i]];
+  }
+
+  // ★【バグ修正】1.5. 各要素の初期位置（Start）を記録
+  const startRects = children.map(el => el.getBoundingClientRect());
+
+  // ★【バグ修正】1.6. 一時的にDOMをシャッフル後の順序にして、移動先の位置（End）を記録
+  grid.innerHTML = '';
+  shuffledChildren.forEach(el => grid.appendChild(el));
+  const endRects = shuffledChildren.map(el => el.getBoundingClientRect());
+
+  // ★【バグ修正】1.7. 座標が取れたら、アニメーションさせるために即座に元のDOM順に戻す
+  grid.innerHTML = '';
+  children.forEach(el => grid.appendChild(el));
+
+  // 2. 移動中アニメーション用のタイムラインをリアルタイム生成
+  let allKeyframes = '';
+  const animDuration = 1500; // 1.5秒
+
+  children.forEach((el, index) => {
+    // ★【バグ修正】記録しておいた正確な座標から距離を計算
+    const rectStart = startRects[index];
+    // shuffledChildren の中から、この el が最終的にどこに行くかを探して End 座標を特定する
+    const targetIdx = shuffledChildren.indexOf(el);
+    const rectEnd = endRects[targetIdx];
+
+    const dx = rectEnd.left - rectStart.left;
+    const dy = rectEnd.top - rectStart.top;
+    const distance = Math.hypot(dx, dy);
+    const baseAngle = Math.atan2(dy, dx);
+    const radius = distance / 2;
+
+    let kf = '';
+    for (let p = 0; p <= 100; p += 10) {
+      const ratio = p / 100;
+      // すべて同じ時計回りの半円軌道
+      const angle = baseAngle + Math.PI + (Math.PI * ratio);
+      const x = (dx / 2) + Math.cos(angle) * radius;
+      const y = (dy / 2) + Math.sin(angle) * radius;
+      const scale = 1 + Math.sin(Math.PI * ratio) * 0.2;
+const spin = 360 * ratio;
+
+      kf += `${p}% { transform: translate(${x}px, ${y}px) scale(${scale}) rotate(${spin}deg); }\n`;
+    }
+    allKeyframes += `@keyframes shuffleMove_${index} { ${kf} }\n`;
+    el.setAttribute('data-anim-index', index);
+  });
+
+  dynamicStyle.innerHTML = allKeyframes;
+
+  // 3. アニメーションを一斉に再生
+  children.forEach((el) => {
+    const idx = el.getAttribute('data-anim-index');
+    el.classList.add('moving');
+    el.style.animation = `shuffleMove_${idx} ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`;
+  });
+
+  // 4. アニメーションがすべて完了した瞬間に、DOMを正しい新しい並び順で一発で上書きする
+  setTimeout(() => {
+    // コンテナの中身を一度空にして、シャッフル後の配列順で再配置
+    grid.innerHTML = '';
+    shuffledChildren.forEach((el) => {
+      el.style.animation = 'none';
+      el.classList.remove('moving');
+      el.removeAttribute('data-anim-index');
+      grid.appendChild(el);
+    });
+
+    // スタイルリセットのための微細な時間差
+    setTimeout(() => {
+      shuffledChildren.forEach(el => el.style.animation = '');
+      isAnimating = false;
+      shuffleBtn.disabled = false;
+    }, 20);
+  }, animDuration);
+}
+
+//任意の２個間交換
+function JS_SwapTwoCubesByRandam2(){
+		const Col_Suuji=grid.children;
+		const JSArraySuuji=Array.from({length:Col_Suuji.length},(_,_e)=>_e);
+		let r1=JSArraySuuji[$floor($rnd()*JSArraySuuji.length)];
+		JSArraySuuji[r1]=JSArraySuuji[JSArraySuuji.length-1]
+		JSArraySuuji.pop();
+		let r2=JSArraySuuji[$floor($rnd()*JSArraySuuji.length)];
+		swapElementsPerfectCircle( Col_Suuji[r1] , Col_Suuji[r2] );
+}
+//指定位置と任意の一個との2個間交換
+function JS_SwapTwoCubesByRandam(_index){
+		const Col_Suuji=grid.children;
+		const JSArraySuuji=Array.from({length:Col_Suuji.length},(_,_e)=>_e);
+		JSArraySuuji[_index]=JSArraySuuji[JSArraySuuji.length-1]
+		JSArraySuuji.pop();
+		let r2=JSArraySuuji[$floor($rnd()*JSArraySuuji.length)];
+		swapElementsPerfectCircle( Col_Suuji[_index] , Col_Suuji[r2] );
+}
+
+function CustomTimer(){
+
+	// 1. コンストラクタ内でタイマーIDを保持するプロパティを初期化
+  let timerId=null;
+	let BallIndex=0;
+
+  // タイマーを開始するメソッド
+  this.start=function(){
+		if(timerId===null){
+			//BallIndex=0;
+			_Play();
+		}else{
+			this.stop();
+		}
+	}
+
+const _Play=()=>{
+
+	if(BallIndex<grid.children.length){
+		JS_SwapTwoCubesByRandam(BallIndex);
+	}else{
+		this.stop();
+		BallIndex=0;
+		return;
+	}
+	BallIndex++;
+	if(BallIndex>=grid.children.length){
+		this.stop();
+		BallIndex=0;
+		return;
+	}
+	timerId=setTimeout( _Play,200);
+} 
+
+  // タイマーを停止（クリア）するメソッド
+ this.stop=function(){
+    if (timerId !== null) {
+      clearTimeout(timerId);
+		}
+    timerId = null;
+		//BallIndex=0;
+  }
+
+	this.IsRunning=function(){
+		return timerId;
+	}
+}
+
+const MyTimer = new CustomTimer();
+
+$GEI("_Elm_BTN_MyShuffle").onclick=function(){
+	if(MyTimer.IsRunning()){
+		MyTimer.stop();
+	}else{
+		MyTimer.start();
+	}
+}
+
+
+}
+
+  </script>
+</head>
+<body>
+  <div class="TITLE1">数字入れ替え＆自動シャッフル</div>
+  <div class="SETUMEI">手動で2つ選んで入れ替えることも、「自動シャッフル」ボタンで、一斉に美しく交差移動させることも可能です。</div>
+<div style="display: none;"><button id="_Elm_BTN_MyShuffle">任意の2個のみ交換</button></div>
+  <div><button class="shuffle-btn" id="shuffle-trigger">自動シャッフル</button></div>
+  <div class="grid-container" id="grid"></div>
+</body>
+</html>
